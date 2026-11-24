@@ -1,0 +1,138 @@
+{
+ "_comment": "SAM 3 vocabulary of the New York City map: 22 vocabulary classes, 25 prompts. Two of them are folded before the map: pedestrian_signal is relabelled traffic_signal, and utility_pole is a pole carrier for sign localization that the published map leaves out. Curb ramps and catch basins come from Mask2Former-Vistas and have no prompts. mount: ground (the mask bottom touches the ground), pole (hangs on a pole; the contact point is taken from the pole below), surface (flush with the ground; the mask centroid is used).",
+ "fire_hydrant": {
+  "prompts": [
+   "fire hydrant"
+  ],
+  "mount": "ground"
+ },
+ "street_light": {
+  "prompts": [
+   "street light pole"
+  ],
+  "mount": "ground"
+ },
+ "traffic_signal": {
+  "prompts": [
+   "traffic light"
+  ],
+  "mount": "pole"
+ },
+ "pedestrian_signal": {
+  "prompts": [
+   "pedestrian walk signal"
+  ],
+  "mount": "pole"
+ },
+ "traffic_sign": {
+  "prompts": [
+   "traffic sign",
+   "parking regulation sign",
+   "street name sign"
+  ],
+  "mount": "pole"
+ },
+ "bus_stop_sign": {
+  "prompts": [
+   "bus stop sign"
+  ],
+  "mount": "pole"
+ },
+ "sign_pole": {
+  "prompts": [
+   "sign pole"
+  ],
+  "mount": "ground"
+ },
+ "parking_meter": {
+  "prompts": [
+   "parking pay station",
+   "parking meter"
+  ],
+  "mount": "ground"
+ },
+ "trash_can": {
+  "prompts": [
+   "trash can"
+  ],
+  "mount": "ground"
+ },
+ "bench": {
+  "prompts": [
+   "bench"
+  ],
+  "mount": "ground"
+ },
+ "bike_rack": {
+  "prompts": [
+   "bike rack"
+  ],
+  "mount": "ground"
+ },
+ "bike_share_dock": {
+  "prompts": [
+   "bike share docking station"
+  ],
+  "mount": "ground"
+ },
+ "mailbox": {
+  "prompts": [
+   "mailbox"
+  ],
+  "mount": "ground"
+ },
+ "fire_alarm_box": {
+  "prompts": [
+   "fire alarm box"
+  ],
+  "mount": "ground"
+ },
+ "bollard": {
+  "prompts": [
+   "bollard"
+  ],
+  "mount": "ground"
+ },
+ "tree": {
+  "prompts": [
+   "tree trunk"
+  ],
+  "mount": "ground"
+ },
+ "planter": {
+  "prompts": [
+   "planter"
+  ],
+  "mount": "ground"
+ },
+ "bus_shelter": {
+  "prompts": [
+   "bus stop shelter"
+  ],
+  "mount": "ground"
+ },
+ "kiosk": {
+  "prompts": [
+   "LinkNYC kiosk"
+  ],
+  "mount": "ground"
+ },
+ "utility_pole": {
+  "prompts": [
+   "utility pole"
+  ],
+  "mount": "ground"
+ },
+ "barrier": {
+  "prompts": [
+   "construction barrier"
+  ],
+  "mount": "ground"
+ },
+ "manhole": {
+  "prompts": [
+   "manhole cover"
+  ],
+  "mount": "surface"
+ }
+}

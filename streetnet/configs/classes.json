@@ -1,0 +1,117 @@
+{
+ "_comment": "Classes of the published map: display name and group. experimental: precision below 0.67 in the pilot study's visual audit of up to 12 detections per class (fire alarm box 2 of 7, parking meter 4 of 12, planter 7 of 12), or not audited (bike share dock). utility_pole is left out of the published map: none of 12 audited detections was a utility pole. pedestrian_signal is merged into traffic_signal.",
+ "groups": [
+  "Lighting and poles",
+  "Traffic control",
+  "Ground surface",
+  "Safety and emergency",
+  "Sanitation",
+  "Greenery",
+  "Transit and mobility",
+  "Amenities"
+ ],
+ "colors": [
+  "#2a78d6",
+  "#eb6834",
+  "#1baf7a",
+  "#eda100",
+  "#e87ba4",
+  "#008300",
+  "#4a3aa7",
+  "#e34948"
+ ],
+ "classes": {
+  "street_light": {
+   "name": "Street light",
+   "group": 0
+  },
+  "sign_pole": {
+   "name": "Sign pole",
+   "group": 0
+  },
+  "traffic_signal": {
+   "name": "Traffic signal",
+   "group": 1
+  },
+  "traffic_sign": {
+   "name": "Traffic sign",
+   "group": 1
+  },
+  "bus_stop_sign": {
+   "name": "Bus stop sign",
+   "group": 1
+  },
+  "manhole": {
+   "name": "Manhole cover",
+   "group": 2
+  },
+  "storm_drain": {
+   "name": "Catch basin",
+   "group": 2
+  },
+  "curb_ramp": {
+   "name": "Curb ramp",
+   "group": 2
+  },
+  "fire_hydrant": {
+   "name": "Fire hydrant",
+   "group": 3
+  },
+  "bollard": {
+   "name": "Bollard",
+   "group": 3
+  },
+  "barrier": {
+   "name": "Barrier",
+   "group": 3
+  },
+  "fire_alarm_box": {
+   "name": "Fire alarm box",
+   "group": 3,
+   "experimental": true
+  },
+  "trash_can": {
+   "name": "Trash can",
+   "group": 4
+  },
+  "tree": {
+   "name": "Street tree",
+   "group": 5
+  },
+  "planter": {
+   "name": "Planter",
+   "group": 5,
+   "experimental": true
+  },
+  "bus_shelter": {
+   "name": "Bus shelter",
+   "group": 6
+  },
+  "bike_rack": {
+   "name": "Bike rack",
+   "group": 6
+  },
+  "bike_share_dock": {
+   "name": "Bike share dock",
+   "group": 6,
+   "experimental": true
+  },
+  "parking_meter": {
+   "name": "Parking meter",
+   "group": 6,
+   "experimental": true
+  },
+  "bench": {
+   "name": "Bench",
+   "group": 7
+  },
+  "mailbox": {
+   "name": "Mailbox",
+   "group": 7
+  },
+  "kiosk": {
+   "name": "LinkNYC kiosk",
+   "group": 7
+  }
+ }
+}
