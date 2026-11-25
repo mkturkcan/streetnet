@@ -13,7 +13,7 @@ pip install -e . && conda install -c conda-forge tippecanoe        # tippecanoe 
 hf download mehmetkeremturkcan/streetnet-nyc --repo-type dataset --local-dir streetnet-nyc
 # either use the published tiles ...
 #   streetnet-nyc/tiles/streetnet-nyc.pmtiles
-# ... or build them from the GeoParquet (about one minute for 4 million assets):
+# ... or build them from the GeoParquet (about one minute for 4 million assets; 87 MB):
 python tools/viewer/build_tiles.py --assets streetnet-nyc/data/assets.parquet --out streetnet-nyc.pmtiles
 python tools/viewer/serve.py --pmtiles streetnet-nyc/tiles/streetnet-nyc.pmtiles   # open http://127.0.0.1:8000/viewer/
 ```

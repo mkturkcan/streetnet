@@ -94,8 +94,15 @@ const CLASSES = [
   ["tree", "Street tree", 5], ["planter", "Planter", 5, true],
   ["bus_shelter", "Bus shelter", 6], ["bike_rack", "Bike rack", 6], ["bike_share_dock", "Bike share dock", 6, true], ["parking_meter", "Parking meter", 6, true],
   ["bench", "Bench", 7], ["mailbox", "Mailbox", 7], ["kiosk", "LinkNYC kiosk", 7]];
+// Tiles carry compact properties (tools/viewer/build_tiles.py): k class index in TILE_CLASSES, c confidence in percent,
+// s support, r 1 = monocular range and 0 = ground plane, b borough index.
+const TILE_CLASSES = ["street_light", "sign_pole", "traffic_signal", "traffic_sign", "bus_stop_sign", "manhole", "storm_drain",
+  "curb_ramp", "fire_hydrant", "bollard", "barrier", "fire_alarm_box", "trash_can", "tree", "planter", "bus_shelter",
+  "bike_rack", "bike_share_dock", "parking_meter", "bench", "mailbox", "kiosk"];
+const BOROUGHS = ["Manhattan", "Bronx", "Brooklyn", "Queens", "Staten Island"];
 const NAME = Object.fromEntries(CLASSES.map(c => [c[0], c[1]]));
 const GROUP_OF = Object.fromEntries(CLASSES.map(c => [c[0], c[2]]));
+const DETAIL = 14;   // below this zoom: plain dots (cheap); from it on: rounded-square symbols
 
 // Data source: ?data=<url of a .pmtiles file>; default: the file published with the dataset.
 const params = new URLSearchParams(location.search);
@@ -111,13 +118,13 @@ const protocol = new pmtiles.Protocol();
 maplibregl.addProtocol("pmtiles", protocol.tile);
 
 function colorExpr() {
-  const e = ["match", ["get", "class"]];
-  for (const [k, , g] of CLASSES) e.push(k, COLORS[theme][g]);
+  const e = ["match", ["get", "k"]];
+  for (const [k, , g] of CLASSES) e.push(TILE_CLASSES.indexOf(k), COLORS[theme][g]);
   e.push("#888888");
   return e;
 }
 function filterExpr() {
-  return ["all", ["in", ["get", "class"], ["literal", [...visible]]], [">=", ["get", "confidence"], minConf]];
+  return ["all", ["in", ["get", "k"], ["literal", [...visible].map(k => TILE_CLASSES.indexOf(k))]], [">=", ["get", "c"], Math.round(100 * minConf)]];
 }
 // Markers are rounded squares (an SDF image tinted per class).
 function squareImage() {
@@ -131,7 +138,10 @@ function addAssets(map) {
   if (!map.hasImage("sq")) map.addImage("sq", squareImage(), { sdf: true, pixelRatio: 2 });
   map.addSource("assets", { type: "vector", url: "pmtiles://" + DATA,
     attribution: '<a href="https://github.com/mkturkcan/streetnet">StreetNet</a>' });
-  map.addLayer({ id: "assets", type: "symbol", source: "assets", "source-layer": "assets", filter: filterExpr(),
+  map.addLayer({ id: "assets-dots", type: "circle", source: "assets", "source-layer": "assets", filter: filterExpr(), maxzoom: DETAIL,
+    paint: { "circle-color": colorExpr(), "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 0.7, 13, 1.4, DETAIL, 1.8],
+             "circle-opacity": 0.85 } });
+  map.addLayer({ id: "assets", type: "symbol", source: "assets", "source-layer": "assets", filter: filterExpr(), minzoom: DETAIL,
     layout: { "icon-image": "sq", "icon-allow-overlap": true, "icon-ignore-placement": true,
       "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.1, 13, 0.16, 15, 0.24, 17, 0.38, 19, 0.6] },
     paint: { "icon-color": colorExpr(),
@@ -141,7 +151,8 @@ function addAssets(map) {
 }
 
 const map = new maplibregl.Map({ container: "map", style: BASEMAP[theme], center: [-73.94, 40.70], zoom: 10.3,
-  maxBounds: [[-74.6, 40.3], [-73.4, 41.1]], hash: true, attributionControl: { compact: true } });
+  maxBounds: [[-74.6, 40.3], [-73.4, 41.1]], hash: true, attributionControl: { compact: true },
+  maxTileCacheSize: 60, fadeDuration: 0, maxPitch: 0, dragRotate: false });
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
 map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
 map.on("style.load", () => addAssets(map));
@@ -156,7 +167,9 @@ map.on("error", (e) => {
 });
 
 map.on("click", "assets", (e) => {
-  const f = e.features[0], p = f.properties, g = GROUP_OF[p.class];
+  const f = e.features[0], q = f.properties, cls = TILE_CLASSES[q.k], g = GROUP_OF[cls];
+  const p = { class: cls, group: GROUPS[g], confidence: q.c / 100, support: q.s, position_source: q.r ? "range" : "ground",
+              borough: BOROUGHS[q.b] || "" };
   const [lon, lat] = f.geometry.coordinates;
   new maplibregl.Popup({ closeButton: false, maxWidth: "280px" }).setLngLat([lon, lat]).setHTML(
     `<div class="pop"><div class="pop-h"><span class="sw" style="background:${COLORS[theme][g]}"></span>${NAME[p.class] || p.class}</div>
@@ -191,7 +204,7 @@ function buildLegend() {
   });
 }
 function update() {
-  if (map.getLayer("assets")) map.setFilter("assets", filterExpr());
+  for (const id of ["assets", "assets-dots"]) if (map.getLayer(id)) map.setFilter(id, filterExpr());
   buildLegend();
 }
 document.getElementById("all").onclick = () => { CLASSES.forEach(c => visible.add(c[0])); update(); };
