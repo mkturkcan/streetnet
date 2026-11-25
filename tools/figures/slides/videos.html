@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Videos</title>
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<style>
+  .two { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; margin-top: 28px; }
+  .poster { height: 296px; }
+  .play {
+    position: absolute; left: 50%; top: 50%; width: 68px; height: 68px; margin: -34px 0 0 -34px; border-radius: 18px;
+    background: rgba(13, 17, 23, 0.72); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dur { position: absolute; right: 12px; bottom: 12px; padding: 4px 8px 5px; border-radius: 6px; font-size: 12.5px; font-weight: 560;
+         background: rgba(13, 17, 23, 0.78); color: #f0f6fc; font-variant-numeric: tabular-nums; }
+  .meta { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; }
+  .meta .body { font-size: 15px; }
+</style>
+</head>
+<body data-size="1200x522" data-format="jpg" data-quality="86" data-themes="dark">
+<div class="slide">
+  <h1>Videos of the pilot study</h1>
+  <div class="two">
+    <div>
+      <div class="card poster"><img src="../../../docs/assets/video/trailer.jpg" alt="">
+        <div class="play"><svg width="26" height="28" viewBox="0 0 26 28"><path d="M4 3.2 L23 14 L4 24.8 Z" fill="#ffffff" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/></svg></div>
+        <span class="dur">1:50</span><span class="credit" style="left:12px; right:auto; bottom:10px">Imagery © Google</span></div>
+      <div class="meta"><p class="h3">Trailer</p><p class="body">The asset classes and the map application of the Upper Manhattan pilot.</p></div>
+    </div>
+    <div>
+      <div class="card poster"><img src="../../../docs/assets/video/methodology.jpg" alt="">
+        <div class="play"><svg width="26" height="28" viewBox="0 0 26 28"><path d="M4 3.2 L23 14 L4 24.8 Z" fill="#ffffff" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/></svg></div>
+        <span class="dur">6:46</span><span class="credit" style="left:12px; right:auto; bottom:10px">Imagery © Google</span></div>
+      <div class="meta"><p class="h3">Methodology</p><p class="body">The method, its experiments and its evaluation in the pilot study.</p></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

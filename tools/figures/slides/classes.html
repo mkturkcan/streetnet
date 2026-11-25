@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Classes</title>
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<style>
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 16px; row-gap: 16px; margin-top: 26px; }
+  .grp { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 16px 16px 14px; }
+  .grp-h { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 620; letter-spacing: -0.008em; }
+  .cls { margin-top: 12px; }
+  .cls .n { font-size: 16.5px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .cls .p { font-family: var(--mono); font-size: 13px; letter-spacing: -0.025em; color: var(--text-2); margin-top: 3px; line-height: 1.35; }
+  .tag { font-size: 12px; font-weight: 500; color: var(--text-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px 2px; }
+  .foot { margin-top: 18px; }
+</style>
+</head>
+<body data-size="1200x800" data-format="png">
+<div class="slide">
+  <h1>The map covers 22 classes of street assets in eight groups</h1>
+  <div class="grid" id="grid"></div>
+  <p class="cap foot">Text prompts of SAM 3 in monospace; curb ramps and catch basins are classes of Mask2Former trained on Mapillary Vistas. Tagged classes are experimental: precision below 0.67 in the pilot study's visual audit, or not audited.</p>
+</div>
+<script>
+async function build() {
+  const [C, P] = await Promise.all([fetch("../../../streetnet/configs/classes.json").then(r => r.json()),
+                                    fetch("../../../streetnet/configs/prompts.json").then(r => r.json())]);
+  const m2f = { curb_ramp: "Mask2Former: Curb Cut", storm_drain: "Mask2Former: Catch Basin" };
+  const grid = document.getElementById("grid");
+  C.groups.forEach((g, gi) => {
+    const box = document.createElement("div"); box.className = "grp";
+    box.innerHTML = `<div class="grp-h"><span class="sq lg" style="--c: var(--g${gi})"></span>${g}</div>`;
+    for (const [k, c] of Object.entries(C.classes)) {
+      if (c.group !== gi) continue;
+      let src = m2f[k] || P[k].prompts.map(p => `"${p}"`).join(", ");
+      if (k === "traffic_signal") src += `, "${P.pedestrian_signal.prompts[0]}"`;
+      const d = document.createElement("div"); d.className = "cls";
+      d.innerHTML = `<p class="n">${c.name}${c.experimental ? '<span class="tag">experimental</span>' : ""}</p><p class="p">${src}</p>`;
+      box.appendChild(d);
+    }
+    grid.appendChild(box);
+  });
+}
+window.slideReady = build();
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Placement</title>
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<style>
+  .grid { display: grid; grid-template-columns: 690px 366px; column-gap: 24px; margin-top: 26px; }
+  .panel { position: relative; height: 290px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+  .panel svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ptitle { position: absolute; left: 18px; top: 14px; font-size: 16px; font-weight: 600; color: var(--text); }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 18px; margin-top: 16px; }
+  .rl { display: flex; flex-direction: column; gap: 4px; }
+  .rl .h3 { font-size: 16.5px; display: flex; align-items: center; gap: 8px; }
+  .rl .body { font-size: 15px; line-height: 1.42; }
+  .side-note { margin-top: 16px; }
+  .side-note .body { font-size: 15px; line-height: 1.42; }
+  svg text { font-family: Inter, sans-serif; font-size: 14px; fill: var(--text-2); }
+  svg text.k { fill: var(--text); font-weight: 580; font-size: 14.5px; }
+  svg text.m { font-family: var(--mono); font-size: 11.5px; }
+</style>
+</head>
+<body data-size="1200x540" data-format="png">
+<div class="slide">
+  <h1>Each detection is placed from its ground-contact point</h1>
+  <div class="grid">
+    <div>
+      <div class="panel" data-clip><span class="ptitle">Side view, to scale</span><svg id="side"></svg></div>
+      <div class="cols">
+        <div class="rl"><p class="h3"><span class="sq" style="--c: var(--g3)"></span>Ground plane</p>
+          <p class="body">The contact ray meets a flat ground 2.5 m below the camera.</p></div>
+        <div class="rl"><p class="h3"><span class="sq" style="--c: var(--g5)"></span>Metric range</p>
+          <p class="body">Median MoGe-2 range of five samples directly above the contact pixel.</p></div>
+        <div class="rl"><p class="h3"><span class="sq" style="--c: var(--g0)"></span>Pole</p>
+          <p class="body">Signs and signals take the contact point of the pole below them.</p></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel" data-clip><span class="ptitle">Top view, fusion</span><svg id="top"></svg></div>
+      <div class="side-note"><p class="body">Observations of a class within the radius r<sub>c</sub> form one asset at their weighted median; support counts the panoramas.</p></div>
+    </div>
+  </div>
+</div>
+<script>
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  parent.appendChild(e); return e;
+}
+function sq(p, x, y, s, fill, ring, rw) { return el("rect", { x: x - s / 2, y: y - s / 2, width: s, height: s, rx: s * 0.28, fill, stroke: ring, "stroke-width": rw || 0 }, p); }
+function arrowDefs(svg) {
+  const d = el("defs", {}, svg);
+  const m = el("marker", { id: "ah", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse" }, d);
+  el("path", { d: "M1 1.5 L9 5 L1 8.5 Z", fill: "var(--text-2)" }, m);
+}
+
+// ---------------- side view: x from -1.2 m to 17.6 m, ground at y = 300 px, 36 px per metre
+(function () {
+  const svg = document.getElementById("side"); arrowDefs(svg);
+  const S = 36, X0 = 54, GY = 218, X = m => X0 + m * S, Y = m => GY - m * S, h = 2.5;
+  el("line", { x1: 14, x2: 676, y1: GY, y2: GY, stroke: "var(--border-strong)", "stroke-width": 1.5 }, svg);
+  // camera on its mast
+  el("line", { x1: X(0), x2: X(0), y1: GY, y2: Y(h), stroke: "var(--text-3)", "stroke-width": 1.2, "stroke-dasharray": "3 3" }, svg);
+  sq(svg, X(0), Y(h), 13, "var(--ink)", "var(--surface)", 2);
+  el("text", { x: X(0) - 12, y: Y(h / 2) + 4, "text-anchor": "end" }, svg, "2.5 m");
+  el("text", { x: X(0), y: Y(h) - 16, "text-anchor": "middle", class: "k" }, svg, "Camera");
+  // 1. fire hydrant at 4.6 m: ground-plane intersection
+  const xh = 4.6;
+  el("rect", { x: X(xh) - 7, y: Y(0.8), width: 14, height: 0.8 * S, rx: 4, fill: "var(--g3)" }, svg);
+  el("line", { x1: X(0), y1: Y(h), x2: X(xh), y2: GY, stroke: "var(--g3)", "stroke-width": 1.8 }, svg);
+  sq(svg, X(xh), GY, 9, "var(--surface)", "var(--g3)", 2);
+  // 2. street tree at 10.2 m: metric range along the contact ray, five samples above the contact pixel
+  const xt = 10.2;
+  el("rect", { x: X(xt) - 7, y: Y(3.3), width: 14, height: 3.3 * S, rx: 4, fill: "var(--g5)" }, svg);
+  el("line", { x1: X(0), y1: Y(h), x2: X(xt), y2: GY, stroke: "var(--g5)", "stroke-width": 1.8 }, svg);
+  sq(svg, X(xt), GY, 9, "var(--surface)", "var(--g5)", 2);
+  // five range samples directly above the contact pixel (drawn larger than to scale)
+  for (let i = 0; i < 5; i++) sq(svg, X(xt), GY - 12 - i * 9, 5.5, "var(--bg)", "var(--ink)", 1.1);
+  // 3. traffic sign on its pole at 15.4 m
+  const xp = 15.4;
+  el("rect", { x: X(xp) - 3, y: Y(3.7), width: 6, height: 3.7 * S, rx: 2, fill: "var(--g0)" }, svg);
+  el("rect", { x: X(xp) - 14, y: Y(3.35), width: 28, height: 0.62 * S, rx: 4, fill: "var(--g1)" }, svg);
+  el("line", { x1: X(0), y1: Y(h), x2: X(xp) - 16, y2: Y(2.73), stroke: "var(--g1)", "stroke-width": 1.5, "stroke-dasharray": "5 4" }, svg);
+  el("line", { x1: X(0), y1: Y(h), x2: X(xp), y2: GY, stroke: "var(--g0)", "stroke-width": 1.8 }, svg);
+  sq(svg, X(xp), GY, 9, "var(--surface)", "var(--g0)", 2);
+  el("path", { d: `M${X(xp) + 22} ${Y(2.7)} C${X(xp) + 40} ${Y(1.8)} ${X(xp) + 40} ${Y(0.6)} ${X(xp) + 12} ${GY - 8}`, fill: "none",
+               stroke: "var(--text-2)", "stroke-width": 1.3, "marker-end": "url(#ah)" }, svg);
+  // labels under the ground line
+  for (const [x, t] of [[xh, "Fire hydrant"], [xt, "Street tree"], [xp, "Traffic sign"]])
+    el("text", { x: X(x), y: GY + 26, "text-anchor": "middle", class: "k" }, svg, t);
+  // distance ticks
+  for (const m of [0, 5, 10, 15]) {
+    el("line", { x1: X(m), x2: X(m), y1: GY + 38, y2: GY + 44, stroke: "var(--text-3)", "stroke-width": 1 }, svg);
+    el("text", { x: X(m), y: GY + 58, "text-anchor": "middle" }, svg, m ? `${m} m` : "0");
+  }
+  el("line", { x1: X(0), x2: X(15), y1: GY + 41, y2: GY + 41, stroke: "var(--text-3)", "stroke-width": 1 }, svg);
+})();
+
+// ---------------- top view: a street with three cameras, observations of one tree, cluster radius and the asset
+(function () {
+  const svg = document.getElementById("top"); arrowDefs(svg);
+  const S = 12, OX = 92, OY = 290, X = m => OX + m * S, Y = m => OY - m * S;   // metres: street along y
+  // street band (roadbed) and kerb lines
+  el("rect", { x: X(-3.5), y: 46, width: 7 * S, height: 254, fill: "var(--bg)" }, svg);
+  for (const k of [-3.5, 3.5]) el("line", { x1: X(k), x2: X(k), y1: 46, y2: 300, stroke: "var(--border-strong)", "stroke-width": 1.2 }, svg);
+  const cams = [[0, 4.2], [0, 11.2], [0, 18.2]], tree = [8.6, 11.8];
+  const obs = [[9.3, 12.7], [7.9, 11.0], [8.9, 11.2]];
+  // radius r_c around the asset
+  el("circle", { cx: X(tree[0]), cy: Y(tree[1]), r: 2.6 * S, fill: "none", stroke: "var(--g5)", "stroke-width": 1.3, "stroke-dasharray": "4 4" }, svg);
+  { const t = el("text", { x: X(tree[0]) + 2.6 * S + 6, y: Y(tree[1]) - 14, "font-style": "italic" }, svg, "r");
+    el("tspan", { "baseline-shift": "sub", "font-size": "9.5", "font-style": "normal" }, t, "c"); }
+  cams.forEach(([cx, cy], i) => {
+    const [ox, oy] = obs[i];
+    el("line", { x1: X(cx), y1: Y(cy), x2: X(ox), y2: Y(oy), stroke: "var(--g5)", "stroke-width": 1.4, "stroke-opacity": 0.75 }, svg);
+  });
+  cams.forEach(([cx, cy]) => sq(svg, X(cx), Y(cy), 11, "var(--ink)", "var(--bg)", 1.8));
+  obs.forEach(([ox, oy]) => sq(svg, X(ox), Y(oy), 8, "var(--g5)", "var(--surface)", 1.5));
+  // fused asset: weighted median
+  sq(svg, X(tree[0]), Y(tree[1]), 15, "var(--g5)", "var(--bg)", 2.4);
+  el("text", { x: X(tree[0]) + 50, y: Y(tree[1]) + 34, class: "k" }, svg, "Asset");
+  el("text", { x: X(tree[0]) + 50, y: Y(tree[1]) + 50 }, svg, "support 3");
+  el("text", { x: X(0), y: Y(4.2) + 28, "text-anchor": "middle" }, svg, "Panoramas");
+  // scale bar 5 m
+  el("line", { x1: X(15), x2: X(20), y1: 266, y2: 266, stroke: "var(--text-2)", "stroke-width": 1.5 }, svg);
+  el("text", { x: X(17.5), y: 258, "text-anchor": "middle" }, svg, "5 m");
+})();
+</script>
+</body>
+</html>

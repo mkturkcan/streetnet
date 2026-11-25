@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New York City map</title>
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<style>
+  .panels { display: grid; grid-template-columns: 600px 460px; column-gap: 20px; margin-top: 26px; }
+  .city { width: 600px; height: 540px; background: var(--surface-2); }
+  .zoom { width: 460px; height: 400px; background: var(--surface-2); }
+  .overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .bl {
+    position: absolute; transform: translate(-50%, -50%); white-space: nowrap;
+    font-size: 14px; font-weight: 600; letter-spacing: -0.005em; color: var(--text);
+    text-shadow: 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 5px var(--halo), 0 0 8px var(--halo);
+  }
+  .sl {
+    position: absolute; white-space: nowrap; font-size: 12px; font-weight: 560; color: var(--text-2);
+    transform-origin: 0 0; letter-spacing: 0.01em;
+    text-shadow: 0 0 2px var(--road), 0 0 3px var(--road), 0 0 4px var(--road), 0 0 6px var(--road), 0 0 8px var(--road);
+  }
+  .zl { position: absolute; font-size: 12px; font-weight: 560; color: var(--text); white-space: nowrap;
+        text-shadow: 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 5px var(--halo); transform: translateY(-50%); }
+  .scale { position: absolute; bottom: 16px; font-size: 12px; line-height: 1; color: var(--text-2); }
+  #city-scale { right: 18px; }
+  .zrow { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 13px; }
+  .scale-out { font-size: 12px; line-height: 1; color: var(--text-2); padding-top: 2px; }
+  .scale-out i { display: block; height: 4px; margin-top: 5px; border: 1.5px solid var(--text-2); border-top: 0; }
+  .scale i { display: block; height: 4px; margin-top: 5px; border: 1.5px solid var(--text-2); border-top: 0; }
+  .legend { display: flex; align-items: flex-start; gap: 18px; margin-top: 16px; }
+  .legend .t { font-size: 14px; line-height: 10px; color: var(--text-2); }
+  .bar { position: relative; width: 260px; }
+  .bar i { display: block; height: 10px; border-radius: 3px; }
+  .ticks { position: relative; height: 16px; margin-top: 5px; font-size: 12px; color: var(--text-3); }
+  .ticks span { position: absolute; transform: translateX(-50%); }
+  .zcap { font-size: 14px; color: var(--text-2); }
+  .groups { display: grid; grid-template-columns: 1fr 1fr; row-gap: 11px; column-gap: 16px; margin-top: 20px; }
+  .groups .key { font-size: 14.5px; }
+  .note { margin-top: auto; }
+  :root { --halo: #ffffff; --road: #ffffff; }
+  :root[data-theme="dark"] { --halo: #161b22; --road: #262c35; }
+</style>
+</head>
+<body data-size="1200x760" data-format="jpg" data-quality="84">
+<div class="slide">
+  <h1>StreetNet maps street assets across New York City</h1>
+  <div class="panels">
+    <div>
+      <div class="card city" id="city">
+        <img data-src="img/nyc_map-city-{theme}.jpg" alt="">
+        <svg class="overlay" id="city-svg"></svg>
+        <div class="scale" id="city-scale"></div>
+      </div>
+      <div class="legend">
+        <span class="t">Assets per 100 m of street</span>
+        <div class="bar"><i id="bar"></i><div class="ticks" id="ticks"></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card zoom" id="zoom">
+        <img data-src="img/nyc_map-zoom-{theme}.png" alt="">
+        <svg class="overlay" id="zoom-svg"></svg>
+      </div>
+      <div class="zrow"><p class="zcap" id="zcap"></p><div class="scale-out" id="zoom-scale"></div></div>
+      <div class="groups" id="groups"></div>
+    </div>
+  </div>
+  <p class="cap note" id="note"></p>
+</div>
+<script>
+const GROUPS = ["Lighting and poles", "Traffic control", "Ground surface", "Safety and emergency",
+                "Sanitation", "Greenery", "Transit and mobility", "Amenities"];
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e); return e;
+}
+function div(cls, html, parent, style) {
+  const d = document.createElement("div"); d.className = cls; d.innerHTML = html;
+  if (style) Object.assign(d.style, style); parent.appendChild(d); return d;
+}
+function build(L) {
+  const theme = document.documentElement.dataset.theme;
+  // citywide panel
+  const city = document.getElementById("city"), csvg = document.getElementById("city-svg");
+  const [bx, by, bw, bh] = L.city.zoom_box;
+  el("rect", { x: bx - 1, y: by - 1, width: bw + 2, height: bh + 2, rx: 2, fill: "none", stroke: "var(--text)", "stroke-width": 1.6 }, csvg);
+  for (const b of L.city.boroughs) div("bl", b.name, city, { left: b.x + "px", top: b.y + "px" });
+  div("zl", "Close-up", city, { left: (bx + bw + 6) + "px", top: (by + bh / 2) + "px" });
+  document.getElementById("city-scale").innerHTML = `5 km<i style="width:${(5 * L.city.km_px).toFixed(1)}px"></i>`;
+  // density legend
+  const stops = L.legend.ramp[theme];
+  document.getElementById("bar").style.background = `linear-gradient(90deg, ${stops.join(", ")})`;
+  const ticks = document.getElementById("ticks");
+  for (const t of L.legend.ticks) {
+    const s = document.createElement("span"); s.textContent = t === L.legend.ticks.at(-1) ? `${t}+` : t;
+    s.style.left = (100 * t / L.legend.vmax) + "%"; ticks.appendChild(s);
+  }
+  // close-up
+  const zoom = document.getElementById("zoom"), zsvg = document.getElementById("zoom-svg");
+  const S = 8;
+  for (const [x, y, g] of L.zoom.assets)
+    el("rect", { x: (x - S / 2).toFixed(1), y: (y - S / 2).toFixed(1), width: S, height: S, rx: 2.4,
+                 fill: `var(--g${g})`, stroke: "var(--bg)", "stroke-width": 1.1 }, zsvg);
+  for (const s of L.zoom.streets) div("sl", s.name, zoom, { left: s.x + "px", top: s.y + "px",
+    transform: `rotate(${s.angle}deg) translate(-50%, -50%)` });
+  document.getElementById("zoom-scale").innerHTML = `100 m<i style="width:${L.zoom.m100_px.toFixed(1)}px"></i>`;
+  document.getElementById("zcap").textContent = L.zoom.label;
+  const groups = document.getElementById("groups");
+  GROUPS.forEach((g, i) => div("key", `<span class="sq" style="--c: var(--g${i})"></span>${g}`, groups));
+  document.getElementById("note").textContent = L.note;
+}
+window.slideReady = fetch("img/nyc_map.json").then(r => r.json()).then(build);
+</script>
+</body>
+</html>

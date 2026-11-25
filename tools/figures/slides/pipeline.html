@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pipeline</title>
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<style>
+  .stage { position: absolute; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+  .stage-h { position: absolute; display: flex; align-items: baseline; gap: 12px; }
+  .stage-h .h3 { font-size: 16px; }
+  .cmd { font-family: var(--mono); font-size: 13px; color: var(--text-2); letter-spacing: -0.01em; }
+  .box {
+    position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 4px;
+    padding: 10px 14px 11px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border);
+  }
+  .box.data { background: var(--surface-2); border-color: transparent; }
+  .box .t { font-size: 15.5px; font-weight: 600; letter-spacing: -0.006em; color: var(--text); line-height: 1.25; }
+  .box .s { font-size: 13px; line-height: 1.38; color: var(--text-2); }
+  .box .f { font-family: var(--mono); font-size: 11.5px; color: var(--text-3); margin-top: 2px; letter-spacing: -0.015em; }
+  svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .canvas { position: relative; margin-top: 26px; height: 476px; }
+</style>
+</head>
+<body data-size="1200x672" data-format="png">
+<div class="slide">
+  <h1>Detection runs once per panorama; mapping fuses the detections of all panoramas</h1>
+  <div class="canvas" id="canvas">
+    <!-- stage 1 -->
+    <div class="stage" style="left:0; top:0; width:1080px; height:262px"></div>
+    <div class="stage-h" style="left:18px; top:226px"><span class="h3">Detection, once per panorama on a GPU</span><span class="cmd">streetnet detect</span></div>
+    <div class="box data" id="pano" style="left:18px; top:67px; width:160px; height:96px">
+      <span class="t">Panorama</span><span class="s">Equirectangular image with position and heading</span></div>
+    <div class="box" id="views" style="left:214px; top:67px; width:166px; height:96px">
+      <span class="t">Four views</span><span class="s">90° wide, 10° below the horizon, 1008 px</span></div>
+    <div class="box model" id="sam" style="left:416px; top:14px; width:300px; height:62px">
+      <span class="t">SAM 3</span><span class="s">25 text prompts in one batch</span></div>
+    <div class="box model" id="m2f" style="left:416px; top:84px; width:300px; height:62px">
+      <span class="t">Mask2Former</span><span class="s">Curb ramps, catch basins, sign filter</span></div>
+    <div class="box model" id="moge" style="left:416px; top:154px; width:300px; height:62px">
+      <span class="t">MoGe-2</span><span class="s">Metric range of each view</span></div>
+    <div class="box data" id="rec" style="left:750px; top:57px; width:312px; height:116px">
+      <span class="t">Detection records</span><span class="s">Class, score, box, ground-contact ray and range of each detection</span>
+      <span class="f">det/&lt;pano_id&gt;.parquet</span></div>
+
+    <!-- stage 2 -->
+    <div class="stage" style="left:0; top:286px; width:800px; height:190px"></div>
+    <div class="stage-h" style="left:18px; top:440px"><span class="h3">Mapping, over all panoramas on CPUs</span><span class="cmd">streetnet map</span></div>
+    <div class="box" id="pole" style="left:18px; top:306px; width:170px; height:112px">
+      <span class="t">Pole association</span><span class="s">Signs and signals take the contact point of their pole</span></div>
+    <div class="box" id="loc" style="left:212px; top:306px; width:178px; height:112px">
+      <span class="t">Localization</span><span class="s">Contact ray at the MoGe-2 range or on the ground plane</span></div>
+    <div class="box" id="fuse" style="left:414px; top:306px; width:178px; height:112px">
+      <span class="t">Fusion</span><span class="s">Clusters within a class radius, weighted median position</span></div>
+    <div class="box data" id="map" style="left:616px; top:306px; width:166px; height:112px">
+      <span class="t">Asset map</span><span class="s">Class, position, support and confidence</span>
+      <span class="f">&lt;name&gt;_assets.parquet</span></div>
+
+    <!-- stage 3 -->
+    <div class="stage" style="left:824px; top:286px; width:256px; height:190px"></div>
+    <div class="stage-h" style="left:842px; top:440px"><span class="h3">Evaluation</span><span class="cmd">streetnet eval</span></div>
+    <div class="box" id="eval" style="left:842px; top:306px; width:220px; height:112px">
+      <span class="t">Reference points</span><span class="s">Precision, recall and F1 at 2, 3 and 5 m in a region</span>
+      <span class="f">metrics.json</span></div>
+    <svg class="wires" id="wires"></svg>
+  </div>
+</div>
+<script>
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e); return e;
+}
+const svg = document.getElementById("wires"), C = document.getElementById("canvas").getBoundingClientRect();
+const defs = el("defs", {}, svg);
+const mk = el("marker", { id: "a", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+el("path", { d: "M1 1.5 L9 5 L1 8.5 Z", fill: "var(--line)" }, mk);
+function box(id) { const r = document.getElementById(id).getBoundingClientRect();
+  return { l: r.left - C.left, r: r.right - C.left, t: r.top - C.top, b: r.bottom - C.top, cy: (r.top + r.bottom) / 2 - C.top, cx: (r.left + r.right) / 2 - C.left }; }
+function wire(d) { el("path", { d, fill: "none", stroke: "var(--line)", "stroke-width": 1.5, "marker-end": "url(#a)",
+                                "stroke-linejoin": "round", "stroke-linecap": "round" }, svg); }
+function h(a, b) { const A = box(a), B = box(b); wire(`M${A.r + 2} ${A.cy} L${B.l - 3} ${A.cy}`); }
+function fan(a, b, mid) {   // a -> b with an elbow at x = mid, rounded corners
+  const A = box(a), B = box(b), r = 8, x = mid, y0 = A.cy, y1 = B.cy, s = Math.sign(y1 - y0);
+  if (!s) return wire(`M${A.r + 2} ${y0} L${B.l - 3} ${y1}`);
+  wire(`M${A.r + 2} ${y0} L${x - r} ${y0} Q${x} ${y0} ${x} ${y0 + s * r} L${x} ${y1 - s * r} Q${x} ${y1} ${x + r} ${y1} L${B.l - 3} ${y1}`);
+}
+function fanIn(a, b, mid) {
+  const A = box(a), B = box(b), r = 8, x = mid, y0 = A.cy, y1 = B.cy, s = Math.sign(y1 - y0);
+  if (!s) return wire(`M${A.r + 2} ${y0} L${B.l - 3} ${y1}`);
+  wire(`M${A.r + 2} ${y0} L${x - r} ${y0} Q${x} ${y0} ${x} ${y0 + s * r} L${x} ${y1 - s * r} Q${x} ${y1} ${x + r} ${y1} L${B.l - 3} ${y1}`);
+}
+h("pano", "views");
+const V = box("views"), S = box("sam");
+for (const m of ["sam", "m2f", "moge"]) fan("views", m, (V.r + S.l) / 2);
+const R = box("rec");
+for (const m of ["sam", "m2f", "moge"]) fanIn(m, "rec", (S.r + R.l) / 2);
+// records -> pole association: down the right side of stage 1, then left along the gap between the stages
+{ const A = box("rec"), B = box("pole"), y = 274, r = 10;
+  wire(`M${A.cx} ${A.b + 2} L${A.cx} ${y - r} Q${A.cx} ${y} ${A.cx - r} ${y} L${B.cx + r} ${y} Q${B.cx} ${y} ${B.cx} ${y + r} L${B.cx} ${B.t - 3}`); }
+h("pole", "loc"); h("loc", "fuse"); h("fuse", "map"); h("map", "eval");
+</script>
+</body>
+</html>

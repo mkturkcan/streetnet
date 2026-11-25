@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Commands</title>
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<style>
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 18px; margin-top: 28px; }
+  .step { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .cmd { display: flex; align-items: center; gap: 12px; }
+  .cmd code { font-family: var(--mono); font-size: 16px; font-weight: 560; letter-spacing: -0.015em; color: var(--text); }
+  .where { font-size: 13px; color: var(--text-3); margin-left: auto; }
+  .k { font-size: 12.5px; font-weight: 600; color: var(--text-2); margin-bottom: 5px; }
+  .v { font-size: 14.5px; line-height: 1.45; color: var(--text); }
+  .files { display: flex; flex-direction: column; gap: 6px; }
+  .file { font-family: var(--mono); font-size: 12.5px; letter-spacing: -0.015em; color: var(--text); background: var(--bg);
+          border: 1px solid var(--border); border-radius: 7px; padding: 5px 9px; width: fit-content; }
+  .desc { font-size: 14.5px; line-height: 1.45; color: var(--text-2); margin-top: auto; }
+</style>
+</head>
+<body data-size="1200x500" data-format="png">
+<div class="slide">
+  <h1>Three commands take panoramas to an asset map and its evaluation</h1>
+  <div class="steps">
+    <div class="step">
+      <div class="cmd"><span class="step-n">1</span><code>streetnet detect</code><span class="where">GPU</span></div>
+      <div><p class="k">Reads</p><p class="v">A panorama index (pano_id, lat, lon, heading) and equirectangular JPEGs</p></div>
+      <div><p class="k">Writes</p><div class="files"><span class="file">det/&lt;pano_id&gt;.parquet</span></div></div>
+      <p class="desc">One process per GPU; a panorama whose file exists is skipped, so runs resume.</p>
+    </div>
+    <div class="step">
+      <div class="cmd"><span class="step-n">2</span><code>streetnet map</code><span class="where">CPU</span></div>
+      <div><p class="k">Reads</p><p class="v">The detection files of a run folder</p></div>
+      <div><p class="k">Writes</p><div class="files"><span class="file">map/&lt;name&gt;_assets.parquet</span><span class="file">map/&lt;name&gt;_assets.geojson</span></div></div>
+      <p class="desc">One point per asset with class, support, confidence and position source.</p>
+    </div>
+    <div class="step">
+      <div class="cmd"><span class="step-n">3</span><code>streetnet eval</code><span class="where">CPU</span></div>
+      <div><p class="k">Reads</p><p class="v">The map and reference points of the same classes (gt_key, lon, lat)</p></div>
+      <div><p class="k">Writes</p><div class="files"><span class="file">metrics.json</span></div></div>
+      <p class="desc">Precision, recall and F1 per class at 2, 3 and 5 m inside an evaluation region.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

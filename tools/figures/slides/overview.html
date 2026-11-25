@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overview</title>
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<style>
+  .pano { width: 1080px; height: 236px; margin-top: 26px; }
+  .row3 { display: grid; grid-template-columns: repeat(3, 344px); column-gap: 24px; margin-top: 26px; }
+  .tile { width: 344px; height: 236px; }
+  .label { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; }
+  .label .t { display: flex; flex-direction: column; gap: 3px; }
+  .label .body { font-size: 15.5px; line-height: 1.42; }
+  .overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .chip {
+    position: absolute; padding: 3px 7px 4px; border-radius: 6px; font-size: 12px; font-weight: 560; line-height: 1;
+    background: rgba(13, 17, 23, 0.78); color: #f0f6fc; white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .sector { position: absolute; top: 10px; }
+  .cap { margin-top: auto; padding-top: 18px; }
+</style>
+</head>
+<body data-size="1200x830" data-format="jpg" data-quality="80">
+<div class="slide">
+  <h1>StreetNet detects assets in each panorama and fuses them into one point per asset</h1>
+
+  <div class="card pano" id="pano">
+    <img src="img/ov-pano.jpg" alt="">
+    <svg class="overlay" id="pano-svg"></svg>
+    <span class="credit">Imagery © Google</span>
+  </div>
+  <div class="label">
+    <span class="step-n">1</span>
+    <div class="t"><p class="h3">Panorama and views</p>
+      <p class="body">Each panorama is rendered as four perspective views, 90° wide and pitched 10° down. The highlighted view is shown below.</p></div>
+  </div>
+
+  <div class="row3">
+    <div>
+      <div class="card tile" id="seg"><img src="img/ov-view.jpg" alt=""><span class="credit">Imagery © Google</span></div>
+      <div class="label"><span class="step-n">2</span>
+        <div class="t"><p class="h3">Segmentation</p>
+          <p class="body">SAM 3 segments 25 text prompts. Mask2Former adds curb ramps and catch basins.</p></div></div>
+    </div>
+    <div>
+      <div class="card tile" id="rng"><img src="img/ov-range.jpg" alt=""><svg class="overlay" id="rng-svg"></svg></div>
+      <div class="label"><span class="step-n">3</span>
+        <div class="t"><p class="h3">Ground contact and range</p>
+          <p class="body">MoGe-2 range where each object meets the ground. Contours at 5, 10, 20 and 40 m.</p></div></div>
+    </div>
+    <div>
+      <div class="card tile" id="map"><img data-src="img/ov-map-{theme}.png" alt=""><svg class="overlay" id="map-svg"></svg></div>
+      <div class="label"><span class="step-n">4</span>
+        <div class="t"><p class="h3">Fusion</p>
+          <p class="body">Observations from neighbouring panoramas are merged into one point per asset.</p></div></div>
+    </div>
+  </div>
+  <p class="cap">One panorama in Harlem from the Upper Manhattan pilot study. Top view: its observations (bold) and those of neighbouring panoramas (thin).</p>
+</div>
+<script>
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e); return e;
+}
+// object-fit: cover mapping from image pixels to card pixels
+function cover(card, iw, ih) {
+  const W = card.clientWidth, H = card.clientHeight, s = Math.max(W / iw, H / ih);
+  return (x, y) => [x * s - (iw * s - W) / 2, y * s - (ih * s - H) / 2];
+}
+function sq(svg, x, y, size, fill, ring, rw) {
+  el("rect", { x: x - size / 2, y: y - size / 2, width: size, height: size, rx: size * 0.3,
+               fill, stroke: ring, "stroke-width": rw }, svg);
+}
+function build(L) {
+  // 1: sector lines and labels on the panorama strip (yaw -45 at the left edge, 90 degrees per view)
+  const pano = document.getElementById("pano"), psvg = document.getElementById("pano-svg");
+  const W = pano.clientWidth, H = pano.clientHeight;
+  ["Yaw 0°", "Yaw 90°", "Yaw 180°", "Yaw 270°"].forEach((t, i) => {
+    if (i) el("line", { x1: i * W / 4, x2: i * W / 4, y1: 0, y2: H, stroke: "rgba(255,255,255,0.75)", "stroke-width": 1.2,
+                        "stroke-dasharray": "4 4" }, psvg);
+    const c = document.createElement("span"); c.className = "chip sector"; c.textContent = t;
+    c.style.left = (i * W / 4 + 10) + "px"; pano.appendChild(c);
+  });
+  el("rect", { x: 2 * W / 4 + 1.5, y: 1.5, width: W / 4 - 3, height: H - 3, rx: 2, fill: "none",
+               stroke: "#ffffff", "stroke-width": 2.5 }, psvg);
+  // 3: contact pixels and ranges
+  const rc = document.getElementById("rng"), rsvg = document.getElementById("rng-svg");
+  const map3 = cover(rc, L.view.w, L.view.h);
+  const ground = L.view.contacts.filter(c => !["traffic_signal", "traffic_sign", "bus_stop_sign"].includes(c.label));
+  const seen = new Set(), pts = [];
+  for (const c of ground) { const k = Math.round(c.x / 6) + ":" + Math.round(c.y / 6); if (!seen.has(k)) { seen.add(k); pts.push(c); } }
+  const show = new Set(window.RANGE_LABELS || []);
+  for (const c of pts) {
+    const [x, y] = map3(c.x, c.y);
+    sq(rsvg, x, y, 9, `var(--g${c.g})`, "#ffffff", 1.4);
+  }
+  // label a few contacts spread over range and position
+  const picked = [];
+  for (const c of [...pts].sort((a, b) => a.drng - b.drng)) {
+    const [x, y] = map3(c.x, c.y);
+    if (x < 8 || x > rc.clientWidth - 60 || y < 20) continue;
+    if (picked.some(p => Math.abs(p[0] - x) < 70 && Math.abs(p[1] - y) < 26)) continue;
+    if (picked.length && Math.abs(picked.at(-1)[2] - c.drng) < 3) continue;
+    picked.push([x, y, c.drng]);
+    if (picked.length === 5) break;
+  }
+  for (const [x, y, d] of picked) {
+    const chip = document.createElement("span"); chip.className = "chip"; chip.textContent = `${d.toFixed(1)} m`;
+    chip.style.left = (x + 8) + "px"; chip.style.top = (y - 24) + "px"; rc.appendChild(chip);
+  }
+  // 4: top view
+  const msvg = document.getElementById("map-svg"), M = L.map;
+  const thm = document.documentElement.dataset.theme;
+  for (const [x0, y0, x1, y1, g, mine] of M.rays)
+    if (!mine) el("line", { x1: x0, y1: y0, x2: x1, y2: y1, stroke: `var(--g${g})`, "stroke-width": 0.8,
+                 "stroke-opacity": 0.28, "stroke-linecap": "round" }, msvg);
+  for (const [x0, y0, x1, y1, g, mine] of M.rays)
+    if (mine) el("line", { x1: x0, y1: y0, x2: x1, y2: y1, stroke: `var(--g${g})`, "stroke-width": 1.7,
+                 "stroke-opacity": 0.95, "stroke-linecap": "round" }, msvg);
+  for (const [x, y] of M.cams) sq(msvg, x, y, 7, "var(--ink)", "var(--bg)", 1.4);
+  for (const [x, y, g] of M.assets) sq(msvg, x, y, 10, `var(--g${g})`, "var(--bg)", 1.6);
+  sq(msvg, M.cam[0], M.cam[1], 12, "var(--ink)", "var(--bg)", 2);
+}
+window.slideReady = fetch("img/ov.json").then(r => r.json()).then(build);
+</script>
+</body>
+</html>
