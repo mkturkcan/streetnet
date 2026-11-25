@@ -73,21 +73,21 @@ The published version of the map, at a matching radius of 3 m:
 <!-- accuracy:start -->
 | Class | Ground truth | Predicted | Precision | Recall | F1 | Median error (m) |
 |---|---:|---:|---:|---:|---:|---:|
-| Street tree | 1,457 | 1,591 | 0.521 | 0.564 | 0.542 | 2.22 |
-| Traffic sign | 913 | 634 | 0.146 | 0.101 | 0.119 | 2.26 |
-| Sign pole | 485 | 306 | 0.039 | 0.025 | 0.030 | 2.91 |
-| Street light | 351 | 781 | 0.097 | 0.217 | 0.134 | 1.58 |
-| Curb ramp | 307 | 219 | 0.542 | 0.378 | 0.445 | 1.40 |
-| Fire hydrant | 186 | 115 | 0.426 | 0.263 | 0.326 | 2.27 |
-| Catch basin | 176 | 113 | 0.186 | 0.119 | 0.145 | 2.38 |
-| Bike rack | 129 | 71 | 0.070 | 0.039 | 0.050 | 2.11 |
-| Trash can | 51 | 314 | 0.029 | 0.176 | 0.049 | 1.97 |
-| Parking meter | 29 | 16 | 0.125 | 0.069 | 0.089 | 2.49 |
-| Fire alarm box | 23 | 2 | 0.000 | 0.000 | 0.000 | n/a |
-| Bench | 19 | 182 | 0.055 | 0.526 | 0.100 | 2.55 |
-| Bus shelter | 14 | 7 | 0.429 | 0.214 | 0.286 | 2.57 |
-| LinkNYC kiosk | 13 | 0 | n/a | 0.000 | n/a | n/a |
-| All classes | 4,153 | 4,351 | 0.281 | 0.293 | 0.287 | |
+| Street tree | 9,768 | 12,432 | 0.500 | 0.636 | 0.560 | 2.17 |
+| Traffic sign | 6,322 | 5,779 | 0.149 | 0.136 | 0.142 | 2.57 |
+| Sign pole | 3,390 | 3,407 | 0.044 | 0.044 | 0.044 | 3.23 |
+| Curb ramp | 2,962 | 2,254 | 0.633 | 0.479 | 0.546 | 1.41 |
+| Street light | 2,409 | 7,464 | 0.084 | 0.261 | 0.127 | 1.84 |
+| Catch basin | 1,582 | 1,147 | 0.305 | 0.221 | 0.256 | 1.82 |
+| Fire hydrant | 1,454 | 1,106 | 0.375 | 0.284 | 0.323 | 2.29 |
+| Bike rack | 817 | 691 | 0.041 | 0.034 | 0.037 | 2.10 |
+| Trash can | 402 | 3,839 | 0.032 | 0.308 | 0.058 | 2.51 |
+| Fire alarm box | 197 | 25 | 0.000 | 0.000 | 0.000 | n/a |
+| Parking meter | 187 | 131 | 0.115 | 0.080 | 0.094 | 1.68 |
+| LinkNYC kiosk | 109 | 4 | 0.000 | 0.000 | 0.000 | 4.09 |
+| Bus shelter | 105 | 75 | 0.338 | 0.248 | 0.286 | 2.57 |
+| Bench | 102 | 1,954 | 0.027 | 0.520 | 0.052 | 1.83 |
+| All classes | 29,806 | 40,308 | 0.255 | 0.345 | 0.293 | |
 <!-- accuracy:end -->
 
 The accuracy of a map depends on how densely its panoramas sample the streets. In version v0.1 (one panorama per

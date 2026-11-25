@@ -96,7 +96,7 @@ a run can use another vocabulary (`--vocabulary`); curb ramps and catch basins c
 </picture>
 
 <!-- nyc:start -->
-Version v0.1 (preview, plan levels up to 18): 629,271 assets in 22 classes from 52,269 panoramas captured between 2007 and 2026. F1 0.287 at a matching radius of 3 m over 4,153 ground-truth assets of NYC Open Data ([per-class results](docs/evaluation.md#results)).
+Version v0.2 (plan levels up to 20): 4,265,125 assets in 22 classes from 401,419 panoramas captured between 2007 and 2026. F1 0.293 at a matching radius of 3 m over 29,806 ground-truth assets of NYC Open Data ([per-class results](docs/evaluation.md#results)).
 <!-- nyc:end -->
 
 The asset map, its reference points and the evaluation region are published as a
