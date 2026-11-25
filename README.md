@@ -171,6 +171,10 @@ localization, clustering, the map stage and the `map` and `eval` commands.
 - **Fonts** of the figures and the project page: Inter and JetBrains Mono, SIL Open Font License
   ([docs/assets/fonts](docs/assets/fonts)).
 
+## Acknowledgments
+
+This research is supported by the ERC for Smart Street Scapes, funded through NSF award EEC-2133516.
+
 ## Citation
 
 ```bibtex
