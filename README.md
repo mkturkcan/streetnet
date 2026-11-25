@@ -171,6 +171,11 @@ localization, clustering, the map stage and the `map` and `eval` commands.
 - **Fonts** of the figures and the project page: Inter and JetBrains Mono, SIL Open Font License
   ([docs/assets/fonts](docs/assets/fonts)).
 
+## Map viewer
+
+Explore the New York City map in the browser: [StreetNet Map Viewer](https://huggingface.co/spaces/mehmetkeremturkcan/streetnet-viewer).
+To run the viewer locally or on your own map, see [tools/viewer/README.md](tools/viewer/README.md).
+
 ## Acknowledgments
 
 This research is supported by the ERC for Smart Streetscapes, funded through NSF award EEC-2133516.

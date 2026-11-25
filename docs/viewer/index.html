@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StreetNet Map Viewer</title>
+<meta name="description" content="Interactive map of the StreetNet street asset map of New York City.">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
+<style>
+  @font-face { font-family: "Inter"; src: url("../assets/fonts/Inter-Variable.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --surface: #f6f8fa; --surface-2: #eaeef2; --border: #d0d7de;
+    --text: #1f2328; --text-2: #57606a; --text-3: #6e7781; --accent: #0969da;
+    --panel: rgba(255, 255, 255, 0.94); --shadow: 0 1px 2px rgba(31, 35, 40, 0.08), 0 8px 24px rgba(31, 35, 40, 0.10);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d1117; --surface: #161b22; --surface-2: #21262d; --border: #30363d;
+    --text: #e6edf3; --text-2: #9198a1; --text-3: #7d8590; --accent: #4493f8;
+    --panel: rgba(22, 27, 34, 0.94); --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.45 Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  #map { position: absolute; inset: 0; }
+  .panel { position: absolute; top: 16px; left: 16px; width: 300px; max-height: calc(100% - 32px); overflow: auto;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);
+    backdrop-filter: blur(8px); padding: 16px 16px 12px; }
+  .panel h1 { font-size: 16px; font-weight: 650; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .panel .sub { color: var(--text-2); font-size: 13px; margin: 0 0 12px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .group { border-top: 1px solid var(--border); padding: 8px 0 6px; }
+  .group-h { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-weight: 600; font-size: 13px; }
+  .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .chev { margin-left: auto; color: var(--text-3); font-weight: 400; font-size: 12px; cursor: pointer; padding: 0 2px; }
+  .group.closed .cls { display: none; }
+  .cls { display: flex; align-items: center; gap: 8px; padding: 3px 0 3px 18px; font-size: 13px; color: var(--text-2); cursor: pointer; user-select: none; }
+  .cls input, .group-h input { margin: 0; accent-color: var(--accent); }
+  .tag { font-size: 11px; color: var(--text-3); border: 1px solid var(--border); border-radius: 6px; padding: 0 5px; }
+  .controls { display: flex; gap: 8px; margin: 4px 0 10px; }
+  button { font: inherit; font-size: 12px; color: var(--text); background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+  button:hover { background: var(--surface-2); }
+  label.conf { display: block; font-size: 13px; color: var(--text-2); margin: 2px 0 10px; }
+  label.conf input { width: 100%; accent-color: var(--accent); }
+  .foot { font-size: 12px; color: var(--text-3); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 6px; }
+  .foot a { color: var(--accent); text-decoration: none; }
+  .msg { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 14px; box-shadow: var(--shadow); font-size: 13px; color: var(--text-2); display: none; max-width: 90%; }
+  .maplibregl-popup-content { background: var(--panel); color: var(--text); border-radius: 12px; box-shadow: var(--shadow);
+    border: 1px solid var(--border); padding: 12px 14px; font: 13px/1.45 Inter, sans-serif; }
+  .maplibregl-popup-tip { display: none; }
+  .pop-h { font-weight: 650; font-size: 14px; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .pop dl { display: grid; grid-template-columns: auto auto; gap: 2px 14px; margin: 0; }
+  .pop dt { color: var(--text-2); } .pop dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .toggle { position: absolute; top: 16px; right: 16px; }
+  @media (max-width: 640px) {
+    .panel { top: 12px; left: 12px; right: 76px; width: auto; max-height: 42%; padding: 12px; }
+    .panel .sub { display: none; }
+    .toggle { top: 12px; right: 12px; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="panel" id="panel">
+  <h1>StreetNet asset map</h1>
+  <p class="sub" id="sub">New York City, street assets detected in street-level panoramas.</p>
+  <label class="conf">Minimum confidence: <span id="confv">0.00</span>
+    <input id="conf" type="range" min="0" max="0.95" step="0.05" value="0"></label>
+  <div class="controls"><button id="all">Show all</button><button id="none">Hide all</button></div>
+  <div id="legend"></div>
+  <div class="foot">Map data: <a href="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc">streetnet-nyc</a>.
+    Code: <a href="https://github.com/mkturkcan/streetnet">StreetNet</a>. Experimental classes are marked.</div>
+</div>
+<button class="toggle" id="theme" title="Switch light and dark">Dark</button>
+<div class="msg" id="msg"></div>
+
+<script>
+// Classes and colours: streetnet/configs/classes.json (groups in the same order as the colours).
+const GROUPS = ["Lighting and poles", "Traffic control", "Ground surface", "Safety and emergency", "Sanitation", "Greenery",
+                "Transit and mobility", "Amenities"];
+const COLORS = { light: ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"],
+                 dark:  ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"] };
+const CLASSES = [
+  ["street_light", "Street light", 0], ["sign_pole", "Sign pole", 0],
+  ["traffic_signal", "Traffic signal", 1], ["traffic_sign", "Traffic sign", 1], ["bus_stop_sign", "Bus stop sign", 1],
+  ["manhole", "Manhole cover", 2], ["storm_drain", "Catch basin", 2], ["curb_ramp", "Curb ramp", 2],
+  ["fire_hydrant", "Fire hydrant", 3], ["bollard", "Bollard", 3], ["barrier", "Barrier", 3], ["fire_alarm_box", "Fire alarm box", 3, true],
+  ["trash_can", "Trash can", 4],
+  ["tree", "Street tree", 5], ["planter", "Planter", 5, true],
+  ["bus_shelter", "Bus shelter", 6], ["bike_rack", "Bike rack", 6], ["bike_share_dock", "Bike share dock", 6, true], ["parking_meter", "Parking meter", 6, true],
+  ["bench", "Bench", 7], ["mailbox", "Mailbox", 7], ["kiosk", "LinkNYC kiosk", 7]];
+const NAME = Object.fromEntries(CLASSES.map(c => [c[0], c[1]]));
+const GROUP_OF = Object.fromEntries(CLASSES.map(c => [c[0], c[2]]));
+
+// Data source: ?data=<url of a .pmtiles file>; default: the file published with the dataset.
+const params = new URLSearchParams(location.search);
+const DATA = params.get("data") || "https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc/resolve/main/tiles/streetnet-nyc.pmtiles";
+const BASEMAP = { light: "https://tiles.openfreemap.org/styles/positron", dark: "https://tiles.openfreemap.org/styles/dark" };
+
+let theme = params.get("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+const visible = new Set(CLASSES.map(c => c[0]));
+const open = new Set();
+let minConf = 0;
+
+const protocol = new pmtiles.Protocol();
+maplibregl.addProtocol("pmtiles", protocol.tile);
+
+function colorExpr() {
+  const e = ["match", ["get", "class"]];
+  for (const [k, , g] of CLASSES) e.push(k, COLORS[theme][g]);
+  e.push("#888888");
+  return e;
+}
+function filterExpr() {
+  return ["all", ["in", ["get", "class"], ["literal", [...visible]]], [">=", ["get", "confidence"], minConf]];
+}
+// Markers are rounded squares (an SDF image tinted per class).
+function squareImage() {
+  const n = 48, r = 11, pad = 6, c = document.createElement("canvas");
+  c.width = c.height = n;
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.beginPath(); x.roundRect(pad, pad, n - 2 * pad, n - 2 * pad, r); x.fill();
+  return x.getImageData(0, 0, n, n);
+}
+function addAssets(map) {
+  if (!map.hasImage("sq")) map.addImage("sq", squareImage(), { sdf: true, pixelRatio: 2 });
+  map.addSource("assets", { type: "vector", url: "pmtiles://" + DATA,
+    attribution: '<a href="https://github.com/mkturkcan/streetnet">StreetNet</a>' });
+  map.addLayer({ id: "assets", type: "symbol", source: "assets", "source-layer": "assets", filter: filterExpr(),
+    layout: { "icon-image": "sq", "icon-allow-overlap": true, "icon-ignore-placement": true,
+      "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.1, 13, 0.16, 15, 0.24, 17, 0.38, 19, 0.6] },
+    paint: { "icon-color": colorExpr(),
+      "icon-halo-color": theme === "dark" ? "#0d1117" : "#ffffff",
+      "icon-halo-width": ["interpolate", ["linear"], ["zoom"], 14, 0, 16, 1.2],
+      "icon-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0.7, 14, 1] } });
+}
+
+const map = new maplibregl.Map({ container: "map", style: BASEMAP[theme], center: [-73.94, 40.70], zoom: 10.3,
+  maxBounds: [[-74.6, 40.3], [-73.4, 41.1]], hash: true, attributionControl: { compact: true } });
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-right");
+map.on("style.load", () => addAssets(map));
+
+const msg = document.getElementById("msg");
+map.on("error", (e) => {
+  const s = String(e && e.error && (e.error.message || e.error));
+  if (/pmtiles|401|403|404|Failed to fetch|range/i.test(s)) {
+    msg.textContent = "The asset tiles could not be loaded from " + DATA + ". If the dataset is private, open the viewer with ?data= pointing to a local copy (see tools/viewer/README.md).";
+    msg.style.display = "block";
+  }
+});
+
+map.on("click", "assets", (e) => {
+  const f = e.features[0], p = f.properties, g = GROUP_OF[p.class];
+  const [lon, lat] = f.geometry.coordinates;
+  new maplibregl.Popup({ closeButton: false, maxWidth: "280px" }).setLngLat([lon, lat]).setHTML(
+    `<div class="pop"><div class="pop-h"><span class="sw" style="background:${COLORS[theme][g]}"></span>${NAME[p.class] || p.class}</div>
+     <dl><dt>Group</dt><dd>${p.group}</dd>
+         <dt>Confidence</dt><dd>${Number(p.confidence).toFixed(2)}</dd>
+         <dt>Panoramas</dt><dd>${p.support}</dd>
+         <dt>Position from</dt><dd>${p.position_source === "range" ? "monocular range" : "ground plane"}</dd>
+         <dt>Borough</dt><dd>${p.borough}</dd>
+         <dt>Coordinates</dt><dd>${lat.toFixed(6)}, ${lon.toFixed(6)}</dd></dl></div>`).addTo(map);
+});
+map.on("mouseenter", "assets", () => map.getCanvas().style.cursor = "pointer");
+map.on("mouseleave", "assets", () => map.getCanvas().style.cursor = "");
+
+// Legend with class toggles
+const legend = document.getElementById("legend");
+function buildLegend() {
+  legend.innerHTML = "";
+  GROUPS.forEach((gname, g) => {
+    const cls = CLASSES.filter(c => c[2] === g);
+    const box = document.createElement("div"); box.className = "group" + (open.has(g) ? "" : " closed");
+    const allOn = cls.every(c => visible.has(c[0]));
+    box.innerHTML = `<label class="group-h"><input type="checkbox" ${allOn ? "checked" : ""}><span class="sw" style="background:${COLORS[theme][g]}"></span>${gname}<span class="chev">${open.has(g) ? "Hide classes" : cls.length + (cls.length === 1 ? " class" : " classes")}</span></label>`;
+    box.querySelector(".chev").onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); open.has(g) ? open.delete(g) : open.add(g); buildLegend(); };
+    box.querySelector("input").onchange = (ev) => { cls.forEach(c => ev.target.checked ? visible.add(c[0]) : visible.delete(c[0])); update(); };
+    for (const [k, n, , exp] of cls) {
+      const row = document.createElement("label"); row.className = "cls";
+      row.innerHTML = `<input type="checkbox" ${visible.has(k) ? "checked" : ""}>${n}${exp ? ' <span class="tag">experimental</span>' : ""}`;
+      row.querySelector("input").onchange = (ev) => { ev.target.checked ? visible.add(k) : visible.delete(k); update(); };
+      box.appendChild(row);
+    }
+    legend.appendChild(box);
+  });
+}
+function update() {
+  if (map.getLayer("assets")) map.setFilter("assets", filterExpr());
+  buildLegend();
+}
+document.getElementById("all").onclick = () => { CLASSES.forEach(c => visible.add(c[0])); update(); };
+document.getElementById("none").onclick = () => { visible.clear(); update(); };
+const conf = document.getElementById("conf");
+conf.oninput = () => { minConf = Number(conf.value); document.getElementById("confv").textContent = minConf.toFixed(2); update(); };
+
+// Theme
+const themeBtn = document.getElementById("theme");
+function applyTheme() {
+  document.documentElement.dataset.theme = theme;
+  themeBtn.textContent = theme === "dark" ? "Light" : "Dark";
+  buildLegend();
+}
+themeBtn.onclick = () => { theme = theme === "dark" ? "light" : "dark"; applyTheme(); map.setStyle(BASEMAP[theme]); };
+applyTheme();
+</script>
+</body>
+</html>
