@@ -81,7 +81,7 @@ ROLL_GAIN = -0.7          # calibrated on the Upper Manhattan pilot
 
 
 def metadata_normal(pitch_deg, roll_deg) -> np.ndarray:
-    """Ground up-normal (N, 3) in the cam frame from the capture metadata's camera pitch and roll.
+    """Ground normal (N, 3) in the cam frame from the capture metadata's camera pitch and roll.
 
     The rule was calibrated on Street View metadata in the pilot study (pitch 0 = level):
         tilt = -pitch,  roll = roll wrapped to [-180, 180)
