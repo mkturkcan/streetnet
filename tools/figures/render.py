@@ -5,7 +5,7 @@
     python tools/figures/render.py overview map    # some slides
 
 Each slide is an HTML page tools/figures/slides/<name>.html whose <body> gives its CSS size
-(data-size="1200x620"), its file format (data-format="png" or "jpg", with data-quality for JPEG) and its
+(data-size="1200x620", or "1200xauto" for the height of its content), its file format (data-format="png" or "jpg", with data-quality for JPEG) and its
 themes (data-themes, default "light dark"). Headless Chromium renders it at twice the CSS size, once per theme (the
 page reads ?theme=light|dark). Output: docs/assets/figures/<name>.<ext> for the light theme and
 <name>-dark.<ext> for the dark theme. The pages are served over a local HTTP server rooted at the
@@ -73,7 +73,8 @@ def slide_meta(path: Path) -> dict:
     head = path.read_text()
     m = re.search(r"<body([^>]*)>", head)
     attrs = dict(re.findall(r'data-([a-z]+)="([^"]*)"', m.group(1) if m else ""))
-    w, h = (int(v) for v in attrs.get("size", "1200x600").split("x"))
+    w, h = attrs.get("size", "1200x600").split("x")
+    w, h = int(w), (0 if h == "auto" else int(h))         # auto: the height of the slide's content
     return {"w": w, "h": h, "format": attrs.get("format", "png"), "themes": attrs.get("themes", "light dark").split(),
             "quality": int(attrs.get("quality", JPEG_QUALITY))}
 
@@ -111,12 +112,16 @@ async def render(names: list[str], check_only: bool = False) -> int:
         for name in names:
             meta = slide_meta(SLIDES / f"{name}.html")
             for theme in meta["themes"]:
-                page = await browser.new_page(viewport={"width": meta["w"], "height": meta["h"]},
+                page = await browser.new_page(viewport={"width": meta["w"], "height": meta["h"] or 2400},
                                               device_scale_factor=SCALE)
                 await page.goto(f"http://127.0.0.1:{port}/tools/figures/slides/{name}.html?theme={theme}")
                 await page.evaluate("document.fonts.ready")
                 await page.wait_for_function("[...document.images].every(i => i.complete && i.naturalWidth > 0)")
                 await page.evaluate("window.slideReady || true")
+                if not meta["h"]:
+                    h = await page.evaluate("""() => { const s = document.querySelector('.slide'); s.style.height = 'auto';
+                        const h = Math.ceil(s.getBoundingClientRect().height) + 2; s.style.height = ''; return h; }""")
+                    await page.set_viewport_size({"width": meta["w"], "height": h})
                 await page.wait_for_timeout(150)
                 issues = await page.evaluate(CHECK_JS)
                 for s in issues:
@@ -126,7 +131,8 @@ async def render(names: list[str], check_only: bool = False) -> int:
                     ext = meta["format"]
                     out = OUT / (f"{name}.{ext}" if theme == meta["themes"][0] else f"{name}-{theme}.{ext}")
                     size = save(await page.screenshot(type="png"), out, ext, meta["quality"])
-                    print(f"[render] {out.relative_to(ROOT)}  {meta['w'] * SCALE}x{meta['h'] * SCALE}  {size / 1024:.0f} KB")
+                    vp = page.viewport_size
+                    print(f"[render] {out.relative_to(ROOT)}  {vp['width'] * SCALE}x{vp['height'] * SCALE}  {size / 1024:.0f} KB")
                 await page.close()
         await browser.close()
     httpd.shutdown()
