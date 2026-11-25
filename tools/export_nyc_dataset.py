@@ -292,10 +292,6 @@ The map is released under {LICENSES.get(a.license, a.license)}. The reference po
 come from NYC Open Data, published by the City of New York under its terms of use. The StreetNet code is released
 under the GNU Affero General Public License v3.0 or later.
 
-## Acknowledgments
-
-This research is supported by the ERC for Smart Street Scapes, funded through NSF award EEC-2133516.
-
 ## Citation
 
 ```bibtex

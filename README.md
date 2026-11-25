@@ -173,7 +173,7 @@ localization, clustering, the map stage and the `map` and `eval` commands.
 
 ## Acknowledgments
 
-This research is supported by the ERC for Smart Street Scapes, funded through NSF award EEC-2133516.
+This research is supported by the ERC for Smart Streetscapes, funded through NSF award EEC-2133516.
 
 ## Citation
 
