@@ -10,8 +10,9 @@ Computation, citywide panel:
     density   = (sum of counts over p and the two pieces on each side) / (length of those pieces) x 100 m
     colour    = density on a sequential blue ramp, linear from 0 to the largest round value below the 95th
                 percentile of the pieces with assets, saturated above; line width grows with the same value
-Close-up panel: the assets inside a square around --zoom, one rounded square per asset in the colour of its
-class group (streetnet/configs/classes.json), over the street centrelines (as roadways) and parks.
+Close-up panel: the assets inside a rectangle around --zoom, one rounded square per asset in the colour of its
+class group (streetnet/configs/classes.json), over the street centrelines (as roadways) and parks. When the
+rectangle holds more than --zoom-max-assets assets, its sides shrink by sqrt(max / count), to at least 90 m half height.
 
 Classes outside streetnet/configs/classes.json (utility poles) are left out. The basemap layers are GeoJSON in
 WGS 84 (NYC Open Data: Borough Boundaries, Street Centerline (CSCL), Parks Properties). The tool writes the panel
@@ -214,6 +215,8 @@ def main():
     ap.add_argument("--note", help="caption sentence describing the map (default: from --summary)")
     ap.add_argument("--zoom", default="-73.9452,40.8080,210", help="close-up: lon,lat,half side in metres")
     ap.add_argument("--zoom-label", default="W 125th St and Lenox Ave, Harlem")
+    ap.add_argument("--zoom-max-assets", type=int, default=1400,
+                    help="shrink the close-up (keeping its centre) until it holds about this many assets")
     ap.add_argument("--no-render", action="store_true", help="write the panels only")
     a = ap.parse_args()
 
@@ -246,6 +249,10 @@ def main():
     zx, zy, zh = (float(v) for v in a.zoom.split(","))
     cx, cy = (float(v) for v in ll_to_xy(zx, zy, EPSG))
     zbox = (cx - zh * ZOOM_W / ZOOM_H, cy - zh, cx + zh * ZOOM_W / ZOOM_H, cy + zh)
+    n_zoom = int(((ax >= zbox[0]) & (ax <= zbox[2]) & (ay >= zbox[1]) & (ay <= zbox[3])).sum())
+    if n_zoom > a.zoom_max_assets:                       # dense maps: a smaller square keeps the markers apart
+        zh = max(90.0, zh * (a.zoom_max_assets / n_zoom) ** 0.5)
+        zbox = (cx - zh * ZOOM_W / ZOOM_H, cy - zh, cx + zh * ZOOM_W / ZOOM_H, cy + zh)
 
     labels = {}
     IMG.mkdir(parents=True, exist_ok=True)
