@@ -1,16 +1,23 @@
 #!/usr/bin/env python
-"""Regenerate the tables between <!-- name:start --> and <!-- name:end --> markers in README.md and docs/.
+"""Regenerate the blocks between <!-- name:start --> and <!-- name:end --> markers in the README, the documents and
+the project page, then rebuild the documentation pages (tools/pages.py).
 
     python tools/readme_tables.py [--dataset path/to/hf/folder]
 
-classes   README.md        class, prompts or source model, mount, placement and group (streetnet/configs)
-params    docs/method.md   per-class fusion parameters (streetnet/configs/fusion_params.json)
-nyc       README.md        the published New York City map: counts and accuracy (the dataset's summary.json)
-accuracy  docs/evaluation.md   the same accuracy table with error statistics
+block     file                 content
+classes   docs/method.md       class, prompts or source model, mount, placement and group (streetnet/configs)
+classes   docs/index.html      the same table as HTML, rows grouped by class group
+params    docs/method.md       per-class fusion parameters (streetnet/configs/fusion_params.json)
+nyc       README.md            the published New York City map: version, counts and F1 (the dataset's summary.json)
+nyc       docs/index.html      the same with the panorama selection and the evaluation region
+accuracy  docs/evaluation.md   per-class accuracy at 3 m with the median error (summary.json)
+accuracy  docs/index.html      the same table as HTML
+The nyc and accuracy blocks are written when --dataset is given.
 """
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import re
 import sys
@@ -18,9 +25,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tools"))
 from streetnet.fusion import DEPTH_CLASSES, class_params  # noqa: E402
 
 CFG = ROOT / "streetnet" / "configs"
+M2F = {"curb_ramp": "Mask2Former-Vistas: Curb Cut", "storm_drain": "Mask2Former-Vistas: Catch Basin"}
 
 
 def replace_block(path: Path, name: str, body: str):
@@ -35,20 +44,45 @@ def f3(x):
     return "n/a" if x is None or x != x else f"{x:.3f}"
 
 
-def classes_table() -> str:
+def class_rows() -> list[dict]:
     voc = json.loads((CFG / "prompts.json").read_text())
     cls = json.loads((CFG / "classes.json").read_text())
-    rows = ["| Class | Prompts (SAM 3) or source | Mount | Placement | Group |", "|---|---|---|---|---|"]
-    m2f = {"curb_ramp": "Mask2Former-Vistas: Curb Cut", "storm_drain": "Mask2Former-Vistas: Catch Basin"}
+    rows = []
     for k, c in cls["classes"].items():
-        src = m2f.get(k) or ", ".join(f'"{p}"' for p in voc[k]["prompts"])
+        prompts = [] if k in M2F else list(voc[k]["prompts"])
         if k == "traffic_signal":
-            src += ', "pedestrian walk signal"'
-        mount = "surface" if k in m2f else voc[k]["mount"]
-        pos = "range" if k in DEPTH_CLASSES else "ground"
-        name = c["name"] + (" (experimental)" if c.get("experimental") else "")
-        rows.append(f"| {name} | {src} | {mount} | {pos} | {cls['groups'][c['group']]} |")
+            prompts += voc["pedestrian_signal"]["prompts"]
+        rows.append({"key": k, "name": c["name"], "experimental": bool(c.get("experimental")), "prompts": prompts,
+                     "source": M2F.get(k), "mount": "surface" if k in M2F else voc[k]["mount"],
+                     "placement": "range" if k in DEPTH_CLASSES else "ground", "group": c["group"],
+                     "group_name": cls["groups"][c["group"]]})
+    return rows
+
+
+def classes_table() -> str:
+    rows = ["| Class | Prompts (SAM 3) or source | Mount | Placement | Group |", "|---|---|---|---|---|"]
+    for r in class_rows():
+        src = r["source"] or ", ".join(f'"{p}"' for p in r["prompts"])
+        name = r["name"] + (" (experimental)" if r["experimental"] else "")
+        rows.append(f"| {name} | {src} | {r['mount']} | {r['placement']} | {r['group_name']} |")
     return "\n".join(rows)
+
+
+def classes_html() -> str:
+    out = ['<div class="table-wrap"><table>',
+           "<thead><tr><th>Class</th><th>Prompts of SAM 3 or source</th><th>Mount</th><th>Placement</th></tr></thead><tbody>"]
+    group = None
+    for r in class_rows():
+        if r["group"] != group:
+            group = r["group"]
+            out.append(f'<tr class="grp-row"><td colspan="4"><span class="sq" style="background:var(--g{group})"></span>'
+                       f'{html.escape(r["group_name"])}</td></tr>')
+        src = html.escape(r["source"]) if r["source"] else ", ".join(f"<code>{html.escape(p)}</code>" for p in r["prompts"])
+        tag = '<span class="tag">experimental</span>' if r["experimental"] else ""
+        out.append(f'<tr><td class="cls">{html.escape(r["name"])}{tag}</td><td>{src}</td><td>{r["mount"]}</td>'
+                   f'<td>{r["placement"]}</td></tr>')
+    out.append("</tbody></table></div>")
+    return "\n".join(out)
 
 
 def params_table() -> str:
@@ -66,44 +100,86 @@ def params_table() -> str:
     return "\n".join(rows)
 
 
-def accuracy_rows(S: dict, with_error: bool) -> list[str]:
+def accuracy_data(S: dict) -> tuple[list[tuple], tuple]:
     cls = json.loads((CFG / "classes.json").read_text())["classes"]
     R3 = S["accuracy_R3"]
-    head = "| Class | Ground truth | Predicted | Precision | Recall | F1 |" + (" Median error (m) |" if with_error else "")
-    rows = [head, "|---|---:|---:|---:|---:|---:|" + ("---:|" if with_error else "")]
+    rows = []
     for c in sorted((k for k in R3 if not k.startswith("_")), key=lambda k: -R3[k]["n_gt"]):
         v = R3[c]
         e = S["median_error_m"].get(c, {}).get("median")
-        rows.append(f"| {cls[c]['name']} | {v['n_gt']:,} | {v['n_pred']:,} | {f3(v['precision'])} | {f3(v['recall'])} | "
-                    f"{f3(v['f1'])} |" + (f" {'n/a' if e is None or e != e else f'{e:.2f}'} |" if with_error else ""))
+        rows.append((cls[c]["name"], cls[c]["group"], v["n_gt"], v["n_pred"], v["precision"], v["recall"], v["f1"], e))
     a = R3["_all"]
-    rows.append(f"| All classes | {a['n_gt']:,} | {a['n_pred']:,} | {f3(a['precision'])} | {f3(a['recall'])} | {f3(a['f1'])} |"
-                + (" |" if with_error else ""))
-    return rows
+    return rows, ("All classes", None, a["n_gt"], a["n_pred"], a["precision"], a["recall"], a["f1"], None)
 
 
-def nyc_block(S: dict) -> str:
+def err(e):
+    return "n/a" if e is None or e != e else f"{e:.2f}"
+
+
+def accuracy_rows(S: dict, with_error: bool) -> list[str]:
+    rows, total = accuracy_data(S)
+    head = "| Class | Ground truth | Predicted | Precision | Recall | F1 |" + (" Median error (m) |" if with_error else "")
+    out = [head, "|---|---:|---:|---:|---:|---:|" + ("---:|" if with_error else "")]
+    for name, _, gt, pr, p, r, f, e in rows + [total]:
+        out.append(f"| {name} | {gt:,} | {pr:,} | {f3(p)} | {f3(r)} | {f3(f)} |"
+                   + ((f" {err(e)} |" if name != "All classes" else " |") if with_error else ""))
+    return out
+
+
+def accuracy_html(S: dict) -> str:
+    rows, total = accuracy_data(S)
+    out = ['<div class="table-wrap"><table>',
+           '<thead><tr><th>Class</th><th class="n">Ground truth</th><th class="n">Predicted</th><th class="n">Precision</th>'
+           '<th class="n">Recall</th><th class="n">F1</th><th class="n">Median error (m)</th></tr></thead><tbody>']
+    for name, g, gt, pr, p, r, f, e in rows:
+        out.append(f'<tr><td class="cls"><span class="sq" style="background:var(--g{g})"></span>{html.escape(name)}</td>'
+                   f'<td class="n">{gt:,}</td><td class="n">{pr:,}</td><td class="n">{f3(p)}</td><td class="n">{f3(r)}</td>'
+                   f'<td class="n">{f3(f)}</td><td class="n">{err(e)}</td></tr>')
+    _, _, gt, pr, p, r, f, _ = total
+    out.append(f'<tr class="total"><td>All classes</td><td class="n">{gt:,}</td><td class="n">{pr:,}</td><td class="n">{f3(p)}</td>'
+               f'<td class="n">{f3(r)}</td><td class="n">{f3(f)}</td><td class="n"></td></tr>')
+    out.append("</tbody></table></div>")
+    return "\n".join(out)
+
+
+def nyc_readme(S: dict) -> str:
     a = S["accuracy_R3"]["_all"]
-    lines = [f"Version {S['version']}: {S['n_assets']:,} assets in {S['n_classes']} classes from {S['n_panos']:,} panoramas "
-             f"captured between {S['capture_years'][0]} and {S['capture_years'][1]}. {S['selection']}",
-             "",
-             f"{S['region_note']} Over {a['n_gt']:,} ground-truth assets of NYC Open Data in that region, the map has "
-             f"precision {f3(a['precision'])}, recall {f3(a['recall'])} and F1 {f3(a['f1'])} at a matching radius of 3 m:",
-             ""]
-    return "\n".join(lines + accuracy_rows(S, with_error=False))
+    return (f"Version {S['version']}: {S['n_assets']:,} assets in {S['n_classes']} classes from {S['n_panos']:,} panoramas "
+            f"captured between {S['capture_years'][0]} and {S['capture_years'][1]}. F1 {f3(a['f1'])} at a matching radius "
+            f"of 3 m over {a['n_gt']:,} ground-truth assets of NYC Open Data "
+            f"([per-class results](docs/evaluation.md#results)).")
+
+
+def nyc_html(S: dict) -> str:
+    a = S["accuracy_R3"]["_all"]
+    e = html.escape
+    return "\n".join([
+        f"<p><strong>Version {e(S['version'])}</strong>: {S['n_assets']:,} assets in {S['n_classes']} classes from "
+        f"{S['n_panos']:,} panoramas captured between {S['capture_years'][0]} and {S['capture_years'][1]}. {e(S['selection'])}</p>",
+        f"<p>{e(S['region_note'])} Over {a['n_gt']:,} ground-truth assets of NYC Open Data in that region, the map has "
+        f"precision {f3(a['precision'])}, recall {f3(a['recall'])} and F1 {f3(a['f1'])} at a matching radius of 3 m "
+        f'(<a href="#accuracy">table</a>).</p>',
+        "<p>The dataset holds the asset map, the reference points and the evaluation region, and no imagery.</p>"])
 
 
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dataset", help="the exported dataset folder (tools/export_nyc_dataset.py --out)")
     a = ap.parse_args()
-    replace_block(ROOT / "README.md", "classes", classes_table())
-    replace_block(ROOT / "docs" / "method.md", "params", params_table())
+    method, evaluation, index, readme = (ROOT / "docs" / "method.md", ROOT / "docs" / "evaluation.md",
+                                         ROOT / "docs" / "index.html", ROOT / "README.md")
+    replace_block(method, "classes", classes_table())
+    replace_block(method, "params", params_table())
+    replace_block(index, "classes", classes_html())
     if a.dataset:
         S = json.loads((Path(a.dataset) / "summary.json").read_text())
-        replace_block(ROOT / "README.md", "nyc", nyc_block(S))
-        replace_block(ROOT / "docs" / "evaluation.md", "accuracy", "\n".join(accuracy_rows(S, with_error=True)))
-    print("tables updated")
+        replace_block(readme, "nyc", nyc_readme(S))
+        replace_block(index, "nyc", nyc_html(S))
+        replace_block(evaluation, "accuracy", "\n".join(accuracy_rows(S, with_error=True)))
+        replace_block(index, "accuracy", accuracy_html(S))
+    import pages  # tools/pages.py
+    pages.build()
+    print("tables updated; documentation pages rebuilt")
 
 
 if __name__ == "__main__":

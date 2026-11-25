@@ -6,6 +6,46 @@ places each detection in a metric map frame and clusters detections of the same 
 stages as pseudocode, with the constants used for the New York City map. The code is in `streetnet/`; file and
 function names are given with each step.
 
+## Classes
+
+The map has 22 classes in eight groups. SAM 3 finds 20 of them from the text prompts of
+`streetnet/configs/prompts.json`; curb ramps and catch basins are classes of Mask2Former trained on Mapillary Vistas.
+Display names, groups and colours are in `streetnet/configs/classes.json`.
+
+<!-- classes:start -->
+| Class | Prompts (SAM 3) or source | Mount | Placement | Group |
+|---|---|---|---|---|
+| Street light | "street light pole" | ground | range | Lighting and poles |
+| Sign pole | "sign pole" | ground | ground | Lighting and poles |
+| Traffic signal | "traffic light", "pedestrian walk signal" | pole | range | Traffic control |
+| Traffic sign | "traffic sign", "parking regulation sign", "street name sign" | pole | range | Traffic control |
+| Bus stop sign | "bus stop sign" | pole | range | Traffic control |
+| Manhole cover | "manhole cover" | surface | ground | Ground surface |
+| Catch basin | Mask2Former-Vistas: Catch Basin | surface | ground | Ground surface |
+| Curb ramp | Mask2Former-Vistas: Curb Cut | surface | ground | Ground surface |
+| Fire hydrant | "fire hydrant" | ground | ground | Safety and emergency |
+| Bollard | "bollard" | ground | ground | Safety and emergency |
+| Barrier | "construction barrier" | ground | ground | Safety and emergency |
+| Fire alarm box (experimental) | "fire alarm box" | ground | ground | Safety and emergency |
+| Trash can | "trash can" | ground | ground | Sanitation |
+| Street tree | "tree trunk" | ground | range | Greenery |
+| Planter (experimental) | "planter" | ground | ground | Greenery |
+| Bus shelter | "bus stop shelter" | ground | ground | Transit and mobility |
+| Bike rack | "bike rack" | ground | range | Transit and mobility |
+| Bike share dock (experimental) | "bike share docking station" | ground | ground | Transit and mobility |
+| Parking meter (experimental) | "parking pay station", "parking meter" | ground | ground | Transit and mobility |
+| Bench | "bench" | ground | range | Amenities |
+| Mailbox | "mailbox" | ground | ground | Amenities |
+| LinkNYC kiosk | "LinkNYC kiosk" | ground | ground | Amenities |
+<!-- classes:end -->
+
+Placement: range classes are placed at the MoGe-2 range along the contact ray, ground classes where that ray meets
+the ground plane; pole-mounted classes use the contact point of the pole below them. Experimental classes had a
+precision below 0.67 in the pilot study's visual audit of up to 12 detections per class (fire alarm box 2 of 7,
+parking meter 4 of 12, planter 7 of 12) or were not audited (bike share dock). The pedestrian signal prompt is
+merged into traffic signals. `streetnet map` also writes utility poles, which serve as pole carriers for signs; the
+published map leaves them out, because none of 12 audited utility-pole detections in the pilot was a utility pole.
+
 ## Frames
 
 ```
@@ -250,6 +290,15 @@ asset ids are renumbered over all blocks
 The 60 m halo is larger than R_max + r_c of any class (at most 29 m), so a greedy cluster near a block edge keeps
 all of its observations; clusters of the connected-component method can chain beyond r_c and can then lose
 observations at a block edge. Each asset is kept by one block.
+
+### Order of the New York City run
+
+The index of the New York City run has 1,170,687 panoramas of the five boroughs. They are processed on four GPUs in
+order of plan level: for Web Mercator zoom levels z = 14 to 22, with cells of edge 40,075 km x cos(latitude) / 2^z
+(1.85 km at z = 14, 116 m at z = 18, 29 m at z = 20, 7 m at z = 22), each cell that holds no panorama selected at a
+coarser level contributes the panorama nearest its centre, which gets plan level z; the remaining panoramas get
+level 23. The panoramas up to a complete level form an even sample of the city. Each published version of the map
+states the panoramas it was built from.
 
 Where panoramas are sparse, few assets are seen from two of them: in version v0.1 of the New York City map (plan
 levels up to 18, one panorama per cell of about 116 m), 93.3% of the assets have support 1. `--min-support-cap k` caps the minimum

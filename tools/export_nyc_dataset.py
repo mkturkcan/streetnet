@@ -173,7 +173,7 @@ configs:
 
 # StreetNet: New York City asset map
 
-![Assets of the published map, coloured by group](figures/map.jpg)
+![Assets per 100 m of street across the five boroughs, and a close-up in Harlem with one square per asset, coloured by group](figures/map.jpg)
 
 This dataset is the asset map produced by [StreetNet]({REPO}) for the five boroughs of New York City. Each row is
 one fused asset: a position, a class, the number of panoramas in which it was detected and a confidence. The map is
