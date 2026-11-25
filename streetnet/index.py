@@ -6,7 +6,7 @@ Columns of the index file (Parquet or CSV):
     heading    float    compass bearing of the image's centre column, degrees clockwise from north
     pitch      float    camera pitch from the capture metadata, degrees, 0 = level   (optional)
     roll       float    camera roll from the capture metadata, degrees               (optional)
-    nx, ny, nz float    ground up-normal in the cam frame; overrides pitch and roll  (optional)
+    nx, ny, nz float    ground normal in the cam frame; overrides pitch and roll  (optional)
     h          float    camera height above the ground in metres, default 2.5        (optional)
     image      str      path of the equirectangular JPEG, absolute or relative to --images (optional)
 Without pitch, roll or a normal the panorama is treated as level.

@@ -63,7 +63,7 @@ def rot_z(a: float) -> np.ndarray:
 
 
 def leveling_from_normal(n_cam) -> np.ndarray:
-    """Rotation R_lev (lev <- cam) taking the ground up-normal n (cam frame) to +z (Rodrigues)."""
+    """Rotation R_lev (lev <- cam) taking the ground normal n (cam frame) to +z (Rodrigues)."""
     n = np.asarray(n_cam, dtype=np.float64)
     n = n / np.linalg.norm(n)
     z = np.array([0.0, 0.0, 1.0])

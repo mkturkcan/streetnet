@@ -5,7 +5,7 @@ Columns
 pano_id, model, label (class key), raw_label (prompt or native class name), score
 view                      index into the view set
 x0, y0, x1, y1, area_px   box and mask area in view pixels
-bot_px, bot_py            ground-contact pixel: median column of the mask pixels in rows y1 - k .. y1, bottom edge
+bot_px, bot_py            ground contact pixel: median column of the mask pixels in rows y1 - k .. y1, bottom edge
                           of row y1, with k = max(1, round(0.03 (y1 - y0 + 1)))
 top_px, top_py            top pixel: median column of the mask pixels in rows y0 .. y0 + k, top edge of row y0
 bot_d*, top_d*, cen_d*    cam-frame unit rays through the contact pixel, the top pixel and the mask centroid

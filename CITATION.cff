@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use StreetNet or its New York City asset map, please cite it as below."
-title: "StreetNet: street-asset maps from street-level panoramas"
+title: "StreetNet: street asset maps from street-level panoramas"
 type: software
 authors:
   - family-names: Turkcan

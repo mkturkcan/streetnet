@@ -41,8 +41,8 @@ missing from its layer counts as a false positive.
 | Sign pole | Street Sign Work Orders, sign positions | DOT | `qt6m-xctn` | signs with a work order |
 | Street light | Street Sign Work Orders; Mobile Telecommunications Franchise Pole Reservation Locations | DOT; OTI | `qt6m-xctn`; `tbgj-tdd6` | partial |
 | Trash can | DSNY Litter Basket Inventory | DSNY | `8znf-7b2c` | public litter baskets |
-| Bike rack | Bicycle Parking | DOT | `592z-n7dk` | city-installed racks |
-| Bench | Seating Locations | DOT | `esmy-s8q5` | city-installed seating |
+| Bike rack | Bicycle Parking | DOT | `592z-n7dk` | racks installed by the city |
+| Bench | Seating Locations | DOT | `esmy-s8q5` | seating installed by the city |
 | Bus shelter | Bus Stop Shelters | DOT | `t4f2-8md7` | inventory |
 | Parking meter | Parking Meters Locations and Status | DOT | `693u-uax6` | inventory |
 | LinkNYC kiosk | LinkNYC Kiosk Locations | OTI | `s4kf-3yrf` | inventory |

@@ -13,7 +13,7 @@ score of at least 0.35 (duplicates left out); the top view shows the observation
 Writes docs/assets/img/hero.jpg (a perspective view 100 degrees wide with the masks, used by the hero slide and the
 project page) and, to tools/figures/slides/img/:
     ov-pano.jpg           the panorama between 35 degrees above and 35 degrees below the horizon
-    ov-view.jpg           one detection view with masks and ground-contact pixels
+    ov-view.jpg           one detection view with masks and ground contact pixels
     ov-range.jpg          the same view coloured by MoGe-2 range, with the contact pixels
     ov-map-{light,dark}.png  top view: cameras, rays of the observations and the fused assets
     ov.json               pixel positions of the labels drawn by the slides
@@ -148,7 +148,7 @@ def main():
     Image.fromarray(strip).save(IMG / "ov-pano.jpg", quality=86, subsampling=0, optimize=True, progressive=True)
     labels = {"pano": {"w": W, "h": H, "yaw0": -45}}
 
-    # ---- one detection view with the masks that project into it and the ground-contact pixels
+    # ---- one detection view with the masks that project into it and the ground contact pixels
     v = views[a.view]
     vrays = view_rays(v)
     vimg = sample_equirect(pano, vrays)

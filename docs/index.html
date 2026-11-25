@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>StreetNet</title>
-<meta name="description" content="StreetNet maps street assets from street-level panoramas: 22 classes segmented in each panorama, placed from their ground-contact point and fused into one georeferenced point per asset.">
+<meta name="description" content="StreetNet maps street assets from street-level panoramas: 22 classes segmented in each panorama, placed from their ground contact point and fused into one georeferenced point per asset.">
 <meta property="og:title" content="StreetNet">
 <meta property="og:description" content="An automated, ready-to-deploy asset management system that maps street assets from street-level panoramas.">
 <meta property="og:image" content="https://mkturkcan.github.io/streetnet/assets/figures/hero.jpg">
@@ -89,14 +89,14 @@
       <div class="sec-body">
         <figure class="fig">
           <a href="assets/figures/overview.jpg" class="zoom" aria-label="Open the figure at full size"><picture><source srcset="assets/figures/overview-dark.jpg" media="(prefers-color-scheme: dark)" data-dark>
-            <img src="assets/figures/overview.jpg" width="2400" height="1660" loading="lazy" alt="One panorama with its four views, one view with the segmented assets, the MoGe-2 range of that view with the ground-contact points, and a top view of the observations fused into assets"></picture></a>
+            <img src="assets/figures/overview.jpg" width="2400" height="1660" loading="lazy" alt="One panorama with its four views, one view with the segmented assets, the MoGe-2 range of that view with the ground contact points, and a top view of the observations fused into assets"></picture></a>
         </figure>
         <div class="facts">
           <div class="fact"><h3>Views</h3><p>Four pinhole views per panorama, 90° wide and pitched 10° down, at 1008 × 1008 px.</p></div>
           <div class="fact"><h3>Segmentation</h3><p>SAM 3 with 25 text prompts in one batch. Mask2Former trained on Mapillary Vistas segments curb ramps and catch basins, and its labels filter sign detections on vehicles and signal heads.</p></div>
           <div class="fact"><h3>Ground contact</h3><p>The median column of the lowest rows of each mask. Its range is the median of five MoGe-2 samples on a strip directly above that pixel.</p></div>
           <div class="fact"><h3>Placement</h3><p>Trees, street lights, signs, signals, benches and bike racks are placed at their MoGe-2 range when it is available, the other classes on a ground plane 2.5 m below the camera.</p></div>
-          <div class="fact"><h3>Fusion</h3><p>Detections of a class within a class-specific radius of 1 to 4 m form one asset at their weighted median, refined by ray-aware least squares for 12 classes. Support counts the panoramas; confidence is 1 − prod(1 − best score of each panorama).</p></div>
+          <div class="fact"><h3>Fusion</h3><p>Detections of a class within a class-specific radius of 1 to 4 m form one asset at their weighted median, refined by anisotropic least squares for 12 classes. Support counts the panoramas; confidence is 1 − prod(1 − best score of each panorama).</p></div>
           <div class="fact"><h3>City scale</h3><p>Blocks of 1 km with a 60 m halo are mapped in parallel on CPUs. Detection takes 0.9 s per panorama on one GPU.</p></div>
         </div>
         <figure class="fig" style="margin-top:40px">
@@ -174,7 +174,7 @@
           <div class="prose">
 <!-- nyc:start -->
 <p><strong>Version v0.2 (plan levels up to 20)</strong>: 4,265,125 assets in 22 classes from 401,419 panoramas captured between 2007 and 2026. Plan levels up to 20 (one panorama per cell of about 29 m) across the five boroughs; minimum support capped at 1.</p>
-<p>The evaluation region is the union of 15 m disks around the 5996 mapped panoramas that lie within 20 m of a panorama of the Upper Manhattan pilot study and at least 30 m from its development split, on which the fusion parameters were tuned. Over 29,806 ground-truth assets of NYC Open Data in that region, the map has precision 0.255, recall 0.345 and F1 0.293 at a matching radius of 3 m (<a href="#accuracy">table</a>).</p>
+<p>The evaluation region is the union of 15 m disks around the 5996 mapped panoramas that lie within 20 m of a panorama of the Upper Manhattan pilot study and at least 30 m from its development split, on which the fusion parameters were tuned. Over 29,806 reference assets of NYC Open Data in that region, the map has precision 0.255, recall 0.345 and F1 0.293 at a matching radius of 3 m (<a href="#accuracy">table</a>).</p>
 <p>The dataset holds the asset map, the reference points and the evaluation region, and no imagery.</p>
 <!-- nyc:end -->
           </div>
@@ -296,7 +296,7 @@ streetnet status --index panos.parquet --run runs/city</code></pre></div>
         <div class="sec-h"><h2>Citation</h2></div>
 <pre style="margin-top:24px"><code>@software{turkcan2026streetnet,
   author  = {Turkcan, Mehmet Kerem},
-  title   = {{StreetNet}: street-asset maps from street-level panoramas},
+  title   = {{StreetNet}: street asset maps from street-level panoramas},
   year    = {2026},
   version = {0.1.0},
   url     = {https://github.com/mkturkcan/streetnet}

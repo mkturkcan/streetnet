@@ -10,7 +10,7 @@ A Parquet or CSV table with one row per panorama (`streetnet/index.py`):
 | `lat`, `lon` | float | yes | camera position, WGS 84 |
 | `heading` | float | yes | compass bearing of the centre column of the panorama, degrees clockwise from north |
 | `pitch`, `roll` | float | no | camera pitch and roll from the capture metadata in degrees, pitch 0 = level |
-| `nx`, `ny`, `nz` | float | no | ground up-normal in the camera frame (x right, y forward, z up); overrides pitch and roll |
+| `nx`, `ny`, `nz` | float | no | ground normal in the camera frame (x right, y forward, z up); overrides pitch and roll |
 | `h` | float | no | camera height above the ground in metres; 2.5 when missing |
 | `image` | string | no | path of the panorama, absolute or relative to `--images`; `<images>/<pano_id>.jpg` when missing |
 
@@ -84,7 +84,7 @@ and utility poles, which serve as pole carriers for signs. The dataset export le
 | `spread` | median distance of the observations from the asset position (m) |
 | `best_obs` | the observation with the smallest range, as an id local to its block |
 | `best_pano`, `best_row` | that observation's panorama and its row in the panorama's detection file |
-| `estimator` | `depth` (MoGe-2 range) or `ground` (flat-ground geometry), the more frequent among the cluster's observations |
+| `estimator` | `depth` (MoGe-2 range) or `ground` (ground-plane geometry), the more frequent among the cluster's observations |
 | `block`, `dense` | the 1 km block that kept the asset; whether the block used the uncapped parameters |
 | `source` | the model the class is taken from |
 

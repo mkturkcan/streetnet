@@ -64,7 +64,7 @@ metadata. The rule was calibrated on Street View metadata in the pilot study:
 
 ```
 tilt = -pitch;  roll = roll wrapped to [-180, 180)                                  (degrees)
-n    = normalise(sin(-0.7 roll), sin(tilt), 1)                                     ground up-normal, cam frame
+n    = normalise(sin(-0.7 roll), sin(tilt), 1)                                     ground normal, cam frame
 n    = (0, 0, 1)  if |tilt| > 12 or |roll| > 8                                       treated as level
 R_lev = the rotation taking n to +z (Rodrigues formula)
 ```
@@ -243,7 +243,7 @@ Before clustering, pedestrian signals are relabelled traffic signals.
 
 The parameters (`streetnet/configs/fusion_params.json`) of 14 classes were chosen by a grid search per class that
 maximized F1 at 3 m against NYC Open Data on the development split of the pilot study (478 of its 10,180 panoramas,
-8 views, 34 prompts). The 8 classes without a reference layer (tuned = no) use hand-set values: R_max 15 m, r_c 2 m,
+8 views, 34 prompts). The 8 classes without a reference layer (tuned = no) use manually set values: R_max 15 m, r_c 2 m,
 greedy clustering, aniso position, score_thr 0.4, min_support 2, conf_thr 0.6, with R_max 12 m and r_c 1.5 m for
 manhole covers. The file's `default` entry fills the keys a class leaves out (min_range 1 m, w_floor 3 m). Four tuned
 classes rest on 11 or fewer reference points of the development split (bench 5, fire alarm box 7, bus shelter 10,

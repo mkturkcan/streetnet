@@ -146,7 +146,7 @@ def nyc_readme(S: dict) -> str:
     a = S["accuracy_R3"]["_all"]
     return (f"Version {S['version']}: {S['n_assets']:,} assets in {S['n_classes']} classes from {S['n_panos']:,} panoramas "
             f"captured between {S['capture_years'][0]} and {S['capture_years'][1]}. F1 {f3(a['f1'])} at a matching radius "
-            f"of 3 m over {a['n_gt']:,} ground-truth assets of NYC Open Data "
+            f"of 3 m over {a['n_gt']:,} reference assets of NYC Open Data "
             f"([per-class results](docs/evaluation.md#results)).")
 
 
@@ -156,7 +156,7 @@ def nyc_html(S: dict) -> str:
     return "\n".join([
         f"<p><strong>Version {e(S['version'])}</strong>: {S['n_assets']:,} assets in {S['n_classes']} classes from "
         f"{S['n_panos']:,} panoramas captured between {S['capture_years'][0]} and {S['capture_years'][1]}. {e(S['selection'])}</p>",
-        f"<p>{e(S['region_note'])} Over {a['n_gt']:,} ground-truth assets of NYC Open Data in that region, the map has "
+        f"<p>{e(S['region_note'])} Over {a['n_gt']:,} reference assets of NYC Open Data in that region, the map has "
         f"precision {f3(a['precision'])}, recall {f3(a['recall'])} and F1 {f3(a['f1'])} at a matching radius of 3 m "
         f'(<a href="#accuracy">table</a>).</p>',
         "<p>The dataset holds the asset map, the reference points and the evaluation region, and no imagery.</p>"])

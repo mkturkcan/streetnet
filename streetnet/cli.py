@@ -11,7 +11,7 @@ import numpy as np
 
 DETECT_HELP = """Detect assets in the panoramas of the index (resumable). With --gpus, one process per GPU."""
 MAP_HELP = """Fuse the detections of a run folder into an asset map (CPU)."""
-EVAL_HELP = """Compare an asset map with ground-truth points inside an evaluation region."""
+EVAL_HELP = """Compare an asset map with reference points inside an evaluation region."""
 STATUS_HELP = """Progress of a detection run."""
 
 

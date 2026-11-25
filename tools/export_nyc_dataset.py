@@ -158,7 +158,7 @@ license: {a.license}
 pretty_name: StreetNet New York City asset map
 tags:
 - geospatial
-- street-assets
+- street assets
 - asset-inventory
 - urban
 - new-york-city
@@ -185,7 +185,7 @@ the accuracy section quantifies. The dataset contains no imagery and no panorama
 | Assets | {n_assets:,} in {pub['class'].nunique()} classes ({borough_line}) |
 | Panoramas | {summary['n_panos']:,} street-level panoramas (Google Street View), captured {yr} |
 | Panorama selection | {a.selection} |
-| Accuracy | F1 {fmt(allr['f1'])} at 3 m over {allr['n_gt']:,} ground-truth assets in the evaluation region (precision {fmt(allr['precision'])}, recall {fmt(allr['recall'])}) |
+| Accuracy | F1 {fmt(allr['f1'])} at 3 m over {allr['n_gt']:,} reference assets in the evaluation region (precision {fmt(allr['precision'])}, recall {fmt(allr['recall'])}) |
 | Version | {a.version}, built {date.today().isoformat()} with streetnet {__version__} |
 
 ## Files
@@ -226,21 +226,21 @@ the accuracy section quantifies. The dataset contains no imagery and no panorama
 Per panorama, StreetNet renders four perspective views (90 degree field of view, 10 degrees below the horizon,
 1008 x 1008 px), segments them with SAM 3 using 25 text prompts, takes curb ramps and catch basins from
 Mask2Former trained on Mapillary Vistas, and measures the metric range of each detection with MoGe-2. Each
-detection is placed on the map along the ray through its ground-contact pixel: trees, street lights, signs,
+detection is placed on the map along the ray through its ground contact pixel: trees, street lights, signs,
 signals, benches and bike racks at the MoGe-2 range when it is available, the other classes where the ray meets a
 flat ground plane 2.5 m below the camera. Pole-mounted signs and signals take the contact point of the pole below them. Detections
 of a class closer than a class-specific radius (1 to 4 m) are clustered into one asset, which is kept when it
 reaches the class's minimum support and confidence. The parameters of 14 classes were tuned on the development
-split (478 panoramas) of a pilot study in Upper Manhattan; the 8 classes without a reference layer use hand-set
+split (478 panoramas) of a pilot study in Upper Manhattan; the 8 classes without a reference layer use manually set
 values. The [method]({REPO}/blob/main/docs/method.md) gives the pseudocode of each
 step.
 
 ## Accuracy
 
-{a.region_note} Ground truth comes from NYC Open Data (table below). Predictions and ground-truth assets of the
+{a.region_note} Ground truth comes from NYC Open Data (table below). Predictions and reference assets of the
 same class within 3 m are matched one to one: the largest number of pairs, and among those the smallest total
-distance. A matched pair whose ground-truth asset lies in the region is a true positive, an unmatched prediction in
-the region a false positive, and an unmatched ground-truth asset in the region a false negative. Classes without
+distance. A matched pair whose reference asset lies in the region is a true positive, an unmatched prediction in
+the region a false positive, and an unmatched reference asset in the region a false negative. Classes without
 ground truth are left out of the table.
 
 | Class | Ground truth | Predicted | Precision | Recall | F1 | Median error (m) |
@@ -271,7 +271,7 @@ streetnet eval --map data/assets.parquet --gt eval/ground_truth.parquet \\
 - Where panoramas are sparse, few assets are seen from two panoramas: in this version {share1:.1%} of the assets
   have support 1. The minimum support is then capped at 1 (see the panorama selection above), which raises recall
   and lowers precision.
-- Positions from flat-ground geometry are biased on slopes and raised sidewalks; positions from metric range carry
+- Positions from ground-plane geometry are biased on slopes and raised sidewalks; positions from metric range carry
   the error of the monocular range estimate, which grows with distance.
 - Classes marked experimental have sparse ground truth or low precision in the pilot study.
 
@@ -288,7 +288,7 @@ Reading `hf://` paths needs `huggingface_hub`. GeoPandas reads the file as a Geo
 
 ## License and attribution
 
-The map is released under {LICENSES.get(a.license, a.license)}. The ground-truth points in `eval/`
+The map is released under {LICENSES.get(a.license, a.license)}. The reference points in `eval/`
 come from NYC Open Data, published by the City of New York under its terms of use. The StreetNet code is released
 under the GNU Affero General Public License v3.0 or later.
 
@@ -297,7 +297,7 @@ under the GNU Affero General Public License v3.0 or later.
 ```bibtex
 @software{{turkcan2026streetnet,
   author  = {{Turkcan, Mehmet Kerem}},
-  title   = {{{{StreetNet}}: street-asset maps from street-level panoramas}},
+  title   = {{{{StreetNet}}: street asset maps from street-level panoramas}},
   year    = {{2026}},
   version = {{{__version__}}},
   url     = {{{REPO}}}
@@ -311,7 +311,7 @@ under the GNU Affero General Public License v3.0 or later.
         capture_years=[y0, y1], assets_by_class={c: int(counts.get(c, 0)) for c in cls}, assets_by_borough=by_borough,
         region_note=a.region_note, n_region_centers=int(len(rc)), accuracy_R3=R3, median_error_m=res["err"]), indent=1,
         default=float))
-    print(f"[export] {n_assets} assets, {len(gt_pub)} ground-truth points, {len(rc)} region centres -> {out}")
+    print(f"[export] {n_assets} assets, {len(gt_pub)} reference points, {len(rc)} region centres -> {out}")
     print(f"[export] F1 at 3 m {allr['f1']:.3f} (P {allr['precision']:.3f}, R {allr['recall']:.3f}, {allr['n_gt']} ground truth)")
 
 

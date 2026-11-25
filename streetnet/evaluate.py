@@ -1,4 +1,4 @@
-"""Evaluation of a map against ground-truth points.
+"""Evaluation of a map against reference points.
 
 Region and ignore rules:
     region       the union of disks of radius region_r (15 m) around the evaluation panoramas
@@ -6,9 +6,9 @@ Region and ignore rules:
                  ground truth of that class, also outside the region: within each connected group of candidate
                  pairs, the largest number of pairs and among those the smallest total distance (Hungarian
                  assignment with a prohibitive cost for pairs farther than R)
-    TP           a matched pair whose ground-truth point lies inside the region
+    TP           a matched pair whose reference point lies inside the region
     FP           an unmatched prediction inside the region
-    FN           an unmatched ground-truth point inside the region
+    FN           an unmatched reference point inside the region
     ignored      matched pairs with the ground truth outside the region, unmatched predictions outside it
 precision = TP / (TP + FP), recall = TP / (TP + FN), F1 = 2 P R / (P + R); F1 is NaN for a class without predictions
 or without ground truth in the region and 0 with both but no TP. '_all' sums TP, FP and FN over the classes;

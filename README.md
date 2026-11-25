@@ -55,7 +55,7 @@ The index has one row per panorama with `pano_id`, `lat`, `lon` and `heading`; t
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/figures/overview-dark.jpg">
-  <img src="docs/assets/figures/overview.jpg" alt="One panorama, one of its four views with the segmented assets, the MoGe-2 range of that view with the ground-contact points, and a top view of the observations fused into assets" width="100%">
+  <img src="docs/assets/figures/overview.jpg" alt="One panorama, one of its four views with the segmented assets, the MoGe-2 range of that view with the ground contact points, and a top view of the observations fused into assets" width="100%">
 </picture>
 
 Each panorama is rendered as four perspective views. SAM 3 segments 25 text prompts, Mask2Former adds curb ramps and
@@ -96,7 +96,7 @@ a run can use another vocabulary (`--vocabulary`); curb ramps and catch basins c
 </picture>
 
 <!-- nyc:start -->
-Version v0.2 (plan levels up to 20): 4,265,125 assets in 22 classes from 401,419 panoramas captured between 2007 and 2026. F1 0.293 at a matching radius of 3 m over 29,806 ground-truth assets of NYC Open Data ([per-class results](docs/evaluation.md#results)).
+Version v0.2 (plan levels up to 20): 4,265,125 assets in 22 classes from 401,419 panoramas captured between 2007 and 2026. F1 0.293 at a matching radius of 3 m over 29,806 reference assets of NYC Open Data ([per-class results](docs/evaluation.md#results)).
 <!-- nyc:end -->
 
 The asset map, its reference points and the evaluation region are published as a
@@ -176,7 +176,7 @@ localization, clustering, the map stage and the `map` and `eval` commands.
 ```bibtex
 @software{turkcan2026streetnet,
   author  = {Turkcan, Mehmet Kerem},
-  title   = {{StreetNet}: street-asset maps from street-level panoramas},
+  title   = {{StreetNet}: street asset maps from street-level panoramas},
   year    = {2026},
   version = {0.1.0},
   url     = {https://github.com/mkturkcan/streetnet}
