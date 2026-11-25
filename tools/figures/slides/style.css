@@ -73,6 +73,8 @@ body {
   overflow: hidden;
 }
 p, h1, h2, h3, figure { margin: 0; }
+sub { line-height: 0; font-size: 0.72em; }
+.nw { white-space: nowrap; }
 
 /* The slide is a card with a hairline border; the 1 px margin outside it takes the canvas colour. */
 .slide {

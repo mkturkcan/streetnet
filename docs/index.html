@@ -96,7 +96,7 @@
           <div class="fact"><h3>Segmentation</h3><p>SAM 3 with 25 text prompts in one batch. Mask2Former trained on Mapillary Vistas segments curb ramps and catch basins, and its labels filter sign detections on vehicles and signal heads.</p></div>
           <div class="fact"><h3>Ground contact</h3><p>The median column of the lowest rows of each mask. Its range is the median of five MoGe-2 samples on a strip directly above that pixel.</p></div>
           <div class="fact"><h3>Placement</h3><p>Trees, street lights, signs, signals, benches and bike racks are placed at their MoGe-2 range when it is available, the other classes on a ground plane 2.5 m below the camera.</p></div>
-          <div class="fact"><h3>Fusion</h3><p>Detections of a class within a class-specific radius of 1 to 4 m form one asset at their weighted median. Support counts the panoramas; confidence is 1 − prod(1 − best score of each panorama).</p></div>
+          <div class="fact"><h3>Fusion</h3><p>Detections of a class within a class-specific radius of 1 to 4 m form one asset at their weighted median, refined by ray-aware least squares for 12 classes. Support counts the panoramas; confidence is 1 − prod(1 − best score of each panorama).</p></div>
           <div class="fact"><h3>City scale</h3><p>Blocks of 1 km with a 60 m halo are mapped in parallel on CPUs. Detection takes 0.9 s per panorama on one GPU.</p></div>
         </div>
         <figure class="fig" style="margin-top:40px">
@@ -168,7 +168,7 @@
       <div class="sec-body">
         <figure class="fig">
           <a href="assets/figures/nyc_map.jpg" class="zoom" aria-label="Open the figure at full size"><picture><source srcset="assets/figures/nyc_map-dark.jpg" media="(prefers-color-scheme: dark)" data-dark>
-            <img src="assets/figures/nyc_map.jpg" width="2400" height="1520" loading="lazy" alt="Assets per 100 m of street across the five boroughs, and a close-up at W 125th St and Lenox Ave with one square per asset"></picture></a>
+            <img src="assets/figures/nyc_map.jpg" width="2400" height="1646" loading="lazy" alt="Assets per 100 m of street across the five boroughs, and a close-up at W 125th St and Lenox Ave with one square per asset"></picture></a>
         </figure>
         <div class="stack" style="margin-top:36px">
           <div class="prose">

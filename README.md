@@ -115,7 +115,7 @@ each version of the map states the panoramas it was built from.
 
 ## Documentation
 
-| | |
+| Page | Contents |
 |---|---|
 | [Project page](https://mkturkcan.github.io/streetnet/) | Videos, figures, classes, results and the quickstart |
 | [Method](docs/method.md) | Pseudocode of each step, the per-class parameters and their tuning |
