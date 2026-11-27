@@ -61,23 +61,23 @@
     <div class="wrap">
       <div class="sec-h">
         <h2>Videos</h2>
-        <p>Overview and methodology recordings from the Upper Manhattan pilot study that informed the released pipeline.</p>
+        <p>Overview trailer and methodology presentation covering the Upper Manhattan pilot evaluation and five-borough deployment.</p>
       </div>
       <div class="sec-body videos">
         <figure class="video">
           <div class="photo"><video controls preload="none" playsinline poster="assets/video/trailer.jpg" aria-label="StreetNet trailer">
             <source src="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-media/resolve/main/streetnet_trailer.mp4" type="video/mp4"></video></div>
           <h3>Overview Trailer <span>1:50</span></h3>
-          <p>Walkthrough of the mapped asset classes and interactive pilot inventory, linking mapped assets back to their source panoramas.</p>
+          <p>Walkthrough of mapped asset classes, per-panorama segmentation, and the interactive pilot inventory linking mapped assets back to their source panoramas.</p>
         </figure>
         <figure class="video">
           <div class="photo"><video controls preload="none" playsinline poster="assets/video/methodology.jpg" aria-label="StreetNet methodology video">
             <source src="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-media/resolve/main/streetnet_methodology.mp4" type="video/mp4"></video></div>
-          <h3>Methodology <span>6:46</span></h3>
-          <p>Detailed breakdown of camera geometry, open-vocabulary and panoptic segmentation, monocular range benchmarks, multi-view fusion, hyperparameter search, and error analysis.</p>
+          <h3>Methodology <span>3:24</span></h3>
+          <p>Structured walkthrough of perspective projection, SAM 3.1 and Mask2Former segmentation, zero-GT self-calibrated MoGe-3 ranging, multi-view fusion, SigLIP 2 verification, pilot benchmarks, label-blind visual auditing, and city-scale deployment.</p>
         </figure>
       </div>
-      <p class="note">These recordings depict the Upper Manhattan pilot configuration (eight views, 34 prompts per panorama, and 18 mapped classes); the pilot web interface and road-condition layers are not part of this release. The released pipeline runs four views and 25 prompts across 22 asset classes. Imagery © Google.</p>
+      <p class="note">Videos cover the Upper Manhattan pilot evaluation (10,180 panoramas) and five-borough New York City deployment across 22 street asset classes. Imagery © Google; reference data: NYC Open Data.</p>
     </div>
   </section>
 
@@ -90,7 +90,7 @@
       <div class="sec-body">
         <figure class="fig">
           <a href="assets/figures/overview.jpg" class="zoom" aria-label="Open figure at full size"><picture><source srcset="assets/figures/overview-dark.jpg" media="(prefers-color-scheme: dark)" data-dark>
-            <img src="assets/figures/overview.jpg" width="2400" height="1660" loading="lazy" alt="Equirectangular panorama with four perspective cutouts, segmented assets, MoGe-2 metric range with ground-contact points, and top-down multi-view fusion"></picture></a>
+            <img src="assets/figures/overview.jpg" width="2400" height="1660" loading="lazy" alt="Equirectangular panorama with four perspective cutouts, segmented assets, self-calibrated MoGe-3 metric range with ground-contact points, and top-down multi-view fusion"></picture></a>
         </figure>
         <div class="facts">
           <div class="fact"><h3>Perspective views</h3><p>Four evenly spaced pinhole views per panorama, each with a 90° field of view, −10° pitch, and 1008 × 1008 resolution.</p></div>
