@@ -3,10 +3,10 @@
 For each traffic_sign or bus_stop_sign detection, with the panorama's Mask2Former label map L (2048 x 1024
 equirectangular) and the signal detections in the same view:
     mask pixels          up to 400 pixels of the detection mask (seeded random sample), view -> L
-    f_light              fraction labelled Traffic Light
-    f_sign               fraction labelled Traffic Sign (Front), (Back) or Traffic Sign Frame
-    f_vehicle            fraction labelled as a vehicle (Bus, Car, Caravan, Motorcycle, On Rails, Other
-                         Vehicle, Trailer, Truck, Wheeled Slow)
+    f_light              fraction labeled Traffic Light
+    f_sign               fraction labeled Traffic Sign (Front), (Back), or Traffic Sign Frame
+    f_vehicle            fraction labeled as a vehicle (Bus, Car, Caravan, Motorcycle, On Rails, Other
+                         Vehicle, Trailer, Truck, or Wheeled Slow)
     f_vehicle_adj        vehicle fraction of a 12 x 3 grid in the band directly below the box:
                          columns x0..x1, rows y1 + 1 .. y1 + max(2, 0.15 h)
     signal_overlap       max over traffic_signal / pedestrian_signal detections (score >= 0.3) in the same
@@ -17,7 +17,7 @@ Decision:
     signal head    f_light >= 0.4, or signal_overlap_win >= 0.5 and f_sign < 0.3
     vehicle mount  f_vehicle >= 0.3, or f_vehicle_adj >= 0.7 and aspect >= 1.8 and top_el < 2 degrees
 Vehicle-mounted detections are dropped. A signal head is dropped when a signal detection overlaps it
-(signal_overlap >= 0.3) and relabelled traffic_signal otherwise.
+(signal_overlap >= 0.3) and relabeled traffic_signal otherwise.
 """
 from __future__ import annotations
 

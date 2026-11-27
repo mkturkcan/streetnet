@@ -8,12 +8,17 @@ from streetnet.geometry import (
     azimuth_of_ray,
     detection_views,
     equirect_pixel_to_ray,
+    extract_crosswalk_points,
+    fit_road_plane_scale,
     leveling_from_normal,
     metadata_normal,
     owner_view,
+    pack_occlusion_mask,
     ray_to_equirect_pixel,
     to_world,
+    unpack_occlusion_mask,
 )
+from streetnet.index import ll_to_xy, nad83_to_itrf2020
 
 
 def test_equirect_round_trip():
@@ -111,3 +116,42 @@ def test_render_views_matches_lookup():
     out = render_views(eq, [view])[0].numpy()             # each pixel samples its own ray direction
     want = view.pixel_to_ray(*np.meshgrid(np.arange(64), np.arange(64)))
     assert np.abs(out.transpose(1, 2, 0) - want).max() < 0.02
+
+
+def test_fit_road_plane_scale_recovers_scale():
+    H, W = 128, 256
+    ys, xs = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
+    d = equirect_pixel_to_ray(xs, ys, W, H)
+    true_r = np.where(d[..., 2] < -0.15, 2.5 / (-d[..., 2]), np.nan)
+    road_mask = (d[..., 2] < -0.20) & (d[..., 2] > -0.60)
+    # Predicted depth underestimated by 1 / 1.25 -> alpha should recover 1.25
+    pred_r = true_r / 1.25
+    alpha = fit_road_plane_scale(pred_r, road_mask, np.eye(3), h=2.5)
+    assert np.isclose(alpha, 1.25, atol=1e-4)
+
+
+def test_crosswalk_extraction_and_occlusion_pack_round_trip():
+    sem = np.full((256, 512), 13, dtype=np.uint8)
+    # Place crosswalk band directly ahead in the lower hemisphere (~10 m ahead)
+    sem[155:165, 250:262] = 8
+    pts = extract_crosswalk_points(sem, cam_x=100.0, cam_y=200.0, heading_deg=0.0, R_lev=np.eye(3), h=2.5)
+    assert len(pts) > 0
+    assert np.all(pts[:, 1] > 201.5) and np.all(np.abs(pts[:, 0] - 100.0) < 3.0)
+
+    lut = np.zeros(256, dtype=bool)
+    lut[55] = True
+    sem[100:140, 100:200] = 55
+    blob = pack_occlusion_mask(sem, lut)
+    occ = unpack_occlusion_mask(blob)
+    assert occ.shape == (128, 256) and occ.any() and not occ.all()
+
+
+def test_nad83_to_itrf2020_shift_in_manhattan():
+    lon, lat = -73.95, 40.81
+    x0, y0 = ll_to_xy(lon, lat, 32618, datum="wgs84")
+    x1, y1 = ll_to_xy(lon, lat, 32618, datum="nad83")
+    shift = math.hypot(float(x1 - x0), float(y1 - y0))
+    # Official NAD83(2011) -> ITRF2020 horizontal shift in Manhattan is ~1.05 m
+    assert 0.8 < shift < 1.3
+    l2, b2 = nad83_to_itrf2020([lon], [lat])
+    assert len(l2) == 1 and len(b2) == 1

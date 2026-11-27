@@ -1,4 +1,4 @@
-"""Batched SAM 3 text-prompted instance segmentation over many views and many prompts.
+"""Batched SAM 3.1 / SAM 3 text-prompted instance segmentation over many views and many prompts.
 
 One call segments all (view, prompt) pairs of a panorama:
     1. the image encoder runs once on the N views, the text encoder once on the prompts (cached);
@@ -10,7 +10,7 @@ One call segments all (view, prompt) pairs of a panorama:
        query, and mask logits are computed for the kept queries. On 9 panoramas (3,072 detections) the
        detections equal those of the full mask head and the masks agree with a mean IoU of 0.9993.
 Inference runs under bfloat16 autocast. `compile()` applies torch.compile to the image backbone and the
-fusion encoder, and to the decoder with CUDA graphs (fixed shapes: N x P must equal max_pairs).
+fusion encoder, and to the decoder with CUDA graphs (fixed shapes: N x P must be divisible by max_pairs).
 """
 from __future__ import annotations
 
@@ -20,11 +20,19 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-RES = 1008                 # SAM 3 input size
+RES = 1008                 # SAM 3 / 3.1 native input size
+SAM31_REPO = "facebook/sam3.1"
+SAM31_FILE = "sam3.1_multiplex.pt"
+
+
+def sam31_checkpoint() -> str:
+    """Download or resolve the cached SAM 3.1 multiplex checkpoint from Hugging Face."""
+    from huggingface_hub import hf_hub_download
+    return hf_hub_download(SAM31_REPO, SAM31_FILE)
 
 
 class Sam3Detector:
-    def __init__(self, device: str = "cuda", threshold: float = 0.25, checkpoint: str | None = None):
+    def __init__(self, device: str = "cuda", threshold: float = 0.22, checkpoint: str | None = "sam3.1"):
         import sam3
         from sam3 import build_sam3_image_model
 
@@ -32,9 +40,18 @@ class Sam3Detector:
         torch.backends.cudnn.allow_tf32 = True
         self.device = torch.device(device)
         self.threshold = threshold
+        if checkpoint == "sam3.1":
+            ckpt_path = sam31_checkpoint()
+            self.model_tag = "sam31"
+        elif checkpoint in (None, "", "sam3"):
+            ckpt_path = None
+            self.model_tag = "sam3"
+        else:
+            ckpt_path = str(checkpoint)
+            self.model_tag = "sam31" if "3.1" in ckpt_path else "sam3"
         bpe = os.path.join(os.path.dirname(sam3.__file__), "assets", "bpe_simple_vocab_16e6.txt.gz")
         with torch.device(self.device):
-            self.model = build_sam3_image_model(bpe_path=bpe, checkpoint_path=checkpoint, device=str(self.device))
+            self.model = build_sam3_image_model(bpe_path=bpe, checkpoint_path=ckpt_path, device=str(self.device))
         self.model.eval()
         self._text_cache: dict[tuple, dict] = {}
 

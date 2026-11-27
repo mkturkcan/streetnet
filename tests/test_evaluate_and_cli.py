@@ -39,9 +39,9 @@ def test_mask_record_contact_point_and_owner():
 
 def test_vocabulary():
     voc = Vocabulary.load(DEFAULT_VOCABULARY)
-    assert len(voc.prompts) == 25 and len(voc.mount_of) == 22
-    assert voc.class_of["parking pay station"] == "parking_meter" and voc.rank_of["parking meter"] == 1
-    assert voc.mount_of["traffic_sign"] == "pole" and voc.mount_of["manhole"] == "surface"
+    assert len(voc.prompts) == 34 and len(voc.mount_of) == 23
+    assert voc.class_of["parking pay station"] == "parking_meter" and voc.rank_of["parking pay station"] == 1
+    assert voc.mount_of["traffic_sign"] == "pole" and voc.mount_of["storm_drain"] == "surface"
 
 
 def test_cli_map_and_eval(street, tmp_path, capsys):

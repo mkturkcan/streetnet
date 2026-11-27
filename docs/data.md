@@ -2,119 +2,101 @@
 
 ## Panorama index
 
-A Parquet or CSV table with one row per panorama (`streetnet/index.py`):
+A Parquet or CSV table containing one row per panorama (`streetnet/index.py`):
 
-| Column | Type | Required | Meaning |
+| Column | Type | Required | Description |
 |---|---|---|---|
-| `pano_id` | string | yes | unique identifier |
-| `lat`, `lon` | float | yes | camera position, WGS 84 |
-| `heading` | float | yes | compass bearing of the centre column of the panorama, degrees clockwise from north |
-| `pitch`, `roll` | float | no | camera pitch and roll from the capture metadata in degrees, pitch 0 = level |
-| `nx`, `ny`, `nz` | float | no | ground normal in the camera frame (x right, y forward, z up); overrides pitch and roll |
-| `h` | float | no | camera height above the ground in metres; 2.5 when missing |
-| `image` | string | no | path of the panorama, absolute or relative to `--images`; `<images>/<pano_id>.jpg` when missing |
+| `pano_id` | string | yes | Unique panorama identifier |
+| `lat`, `lon` | float | yes | Camera coordinates (WGS 84 / ITRF2020) |
+| `heading` | float | yes | Compass bearing of the panorama center column (degrees clockwise from north) |
+| `pitch`, `roll` | float | no | Capture metadata pitch and roll in degrees (`pitch = 0` is level) |
+| `nx`, `ny`, `nz` | float | no | Ground-plane normal in camera frame (`x` right, `y` forward, `z` up); overrides `pitch` and `roll` |
+| `h` | float | no | Camera height above ground in meters (defaults to `2.5`) |
+| `image` | string | no | Path to panorama image (absolute or relative to `--images`; defaults to `<images>/<pano_id>.jpg`) |
 
-Panoramas are equirectangular JPEGs (width = 2 x height) whose centre column looks along `heading`. Without pitch,
-roll or a normal the camera is treated as level. The map frame is the UTM zone that contains the median camera
-position.
+Input images are equirectangular JPEGs (2:1 aspect ratio) whose center column points along `heading`. When `pitch`, `roll`, and ground normals are omitted, the camera is assumed level. Metric coordinates use the UTM zone containing the median camera position.
 
 ## Reference points
 
-`streetnet eval --gt` reads a Parquet or CSV table with one row per reference asset:
+`streetnet eval --gt` accepts a Parquet or CSV table with one row per ground-truth reference asset:
 
-| Column | Meaning |
+| Column | Description |
 |---|---|
-| `gt_key` | class key of the map (`tree`, `fire_hydrant`, `storm_drain`, ...; see `streetnet/configs/classes.json`) |
-| `x`, `y` | position in the map frame (UTM metres of the index's zone), or |
-| `lon`, `lat` | position in WGS 84, converted to the map frame |
+| `gt_key` | Asset class key (`tree`, `fire_hydrant`, `storm_drain`, etc.; see `streetnet/configs/classes.json`) |
+| `x`, `y` | Coordinates in the index's UTM metric frame (meters), or |
+| `lon`, `lat` | Geographic coordinates (pass `--gt-datum nad83` for NAD83(2011) municipal GIS layers to align to ITRF2020 prior to UTM projection) |
 
-The classes present in both the map and the reference table are evaluated. The evaluation region is given by
-panoramas of the index (`--region`, a text file of pano ids; all panoramas by default) or by a table of disk centres
-with `lon` and `lat` (`--region-centers`); [evaluation.md](evaluation.md) gives the protocol.
+Evaluation covers the intersection of classes present in both the asset map and the reference table. The evaluation region is defined either from panorama IDs in the index (`--region`, defaulting to all panoramas) or from an explicit table of disk centers with `lon` and `lat` (`--region-centers`); see [evaluation.md](evaluation.md) for the matching protocol.
 
-## Run folder
+## Run directory
 
 ```
 runs/city/
-├── run.json                    views, threshold and vocabulary of the run; a later call with other settings stops
-├── det/<pano_id>.parquet       detections of one panorama (below); written last, marks the panorama as done
-├── raw/                        with --keep-raw: SAM 3 and Mask2Former records, label maps (PNG, Vistas ids)
-├── logs/detect_<i>.log         one log per GPU process
+├── run.json                    view count, score threshold, model tags, and vocabulary; prevents mismatched resumes
+├── det/<pano_id>.parquet       per-panorama detection records; written atomically upon completion
+├── cw/<pano_id>.npy            world-frame crosswalk ground points (K, 2) float32 for zero-GIS curb-ramp filtering
+├── occ/<pano_id>.bin           zlib-compressed 128 x 256 1-bit occlusion mask (~1 KiB) for clear-view counting
+├── raw/                        optional (--keep-raw): raw SAM 3.1 / Mask2Former records and label PNGs
+├── logs/detect_<i>.log         per-GPU worker logs
 └── map/
-    ├── <name>_assets.parquet   the map (below)
-    ├── <name>_assets.geojson   the same as GeoJSON points (id, class, support, confidence)
-    ├── <name>_obs.parquet      the observations of each asset
-    ├── <name>_panos.txt        the panoramas the map was built from
-    └── <name>_summary.json     counts and settings
+    ├── <name>_assets.parquet   fused asset inventory (schema below)
+    ├── <name>_assets.geojson   GeoJSON point export (id, class, support, confidence)
+    ├── <name>_obs.parquet      individual observations linked to fused assets
+    ├── <name>_panos.txt        panorama IDs included in the map
+    └── <name>_summary.json     asset counts and fusion settings
 ```
-
-A detection file takes 33 KiB per panorama on average in the New York City run.
 
 ## Detections: `det/<pano_id>.parquet`
 
-| Column | Meaning |
+| Column | Description |
 |---|---|
-| `pano_id`, `model`, `label`, `raw_label`, `score` | panorama; `sam3` or `m2f_vistas_pan`; class key; prompt or Vistas class name; detection score |
-| `view` | index of the detection view (0 to 3, yaw 0, 90, 180, 270 degrees) |
-| `x0`, `y0`, `x1`, `y1`, `area_px` | box and mask area in view pixels (1008 x 1008) |
-| `bot_px`, `bot_py`, `top_px`, `top_py` | contact pixel and top pixel |
-| `bot_dx`, `bot_dy`, `bot_dz`; `top_*`; `cen_*` | camera-frame unit rays through the contact pixel, the top pixel and the mask centroid |
-| `bot_az`, `bot_el` | azimuth (degrees clockwise from forward) and elevation of the contact ray |
-| `cut_bottom`, `cut_side` | the mask touches the bottom edge, a side edge of the view |
-| `owner` | the contact azimuth lies in this view's central sector |
-| `mount` | `ground`, `pole` or `surface` |
-| `dup` | the mask overlaps a higher-scoring mask of the same class in the same view (IoU > 0.6) |
-| `prompt_rank` | position of the prompt within its class (0 = first prompt); empty for Mask2Former rows |
-| `sign_filter` | `signal_relabel` for sign detections relabelled traffic signal by the sign filter, else empty |
-| `drng` | MoGe-2 range at the contact point in metres (median of five samples), NaN when unavailable |
+| `pano_id`, `model`, `label`, `raw_label`, `score` | Panorama ID, model (`sam31` or `m2f_vistas_pan`), class key, prompt or Vistas label, and confidence score |
+| `view` | Perspective view index (`0` to `K - 1`) |
+| `x0`, `y0`, `x1`, `y1`, `area_px` | Bounding box and mask area in view pixels (1008 x 1008) |
+| `bot_px`, `bot_py`, `top_px`, `top_py` | Ground-contact pixel and top mask pixel |
+| `bot_dx`, `bot_dy`, `bot_dz`; `top_*`; `cen_*` | Camera-frame unit rays through contact pixel, top pixel, and mask centroid |
+| `bot_az`, `bot_el` | Azimuth (degrees clockwise from forward) and elevation of the contact ray |
+| `cut_bottom`, `cut_side` | Boolean flags indicating whether the mask touches the bottom or side view borders |
+| `owner` | True when the contact azimuth falls inside this view's central yaw sector |
+| `mount` | Mount category: `ground`, `pole`, or `surface` |
+| `dup` | True when suppressed by a higher-scoring same-class mask in the same view (`IoU > 0.6`) |
+| `prompt_rank` | Index of the matched prompt within its class (`0` = primary prompt); `-1` for Mask2Former |
+| `sign_filter` | `signal_relabel` when a sign detection was reclassified as a traffic signal; otherwise empty |
+| `drng` | Road-plane self-calibrated MoGe-3 range at the lower-trunk contact strip (m), or NaN |
+| `d_mask` | Self-calibrated vehicle-masked RLE-mask interior range (m) used when `base_veh >= 0.35` |
+| `base_veh` | Panoptic vehicle-pixel fraction in the 7 x 3 band directly below the bounding box |
+| `mh_frac`, `curb_near` | Manhole overlap and curb-sidewalk adjacency cues for `storm_drain` filtering |
+| `road_alpha` | Per-panorama zero-GT road-plane range calibration factor applied to MoGe-3 |
 
-## Map: `map/<name>_assets.parquet`
+## Map output: `map/<name>_assets.parquet`
 
-The map stage writes the classes of the parameter file found in the detections: the 22 classes of the published map
-and utility poles, which serve as pole carriers for signs. The dataset export leaves utility poles out.
+`streetnet map` outputs all classes present in both the detections and the fusion parameter file: the 22 published classes plus `utility_pole` (used internally as a carrier for pole-mounted signs and excluded from the published dataset).
 
-| Column | Meaning |
+| Column | Description |
 |---|---|
-| `asset_id` | row number |
-| `label` | class key |
-| `x`, `y`; `lon`, `lat` | position in the UTM frame (metres) and in WGS 84 |
-| `support`, `n_obs` | distinct panoramas and observations in the cluster |
-| `score_mean`, `score_max`, `conf` | mean and maximum detection score; confidence 1 - prod(1 - best score per panorama) |
-| `rng_min`, `rng_med` | smallest and median horizontal range of the cluster's observations (m) |
-| `spread` | median distance of the observations from the asset position (m) |
-| `best_obs` | the observation with the smallest range, as an id local to its block |
-| `best_pano`, `best_row` | that observation's panorama and its row in the panorama's detection file |
-| `estimator` | `depth` (MoGe-2 range) or `ground` (ground-plane geometry), the more frequent among the cluster's observations |
-| `block`, `dense` | the 1 km block that kept the asset; whether the block used the uncapped parameters |
-| `source` | the model the class is taken from |
+| `asset_id` | Zero-based integer asset identifier |
+| `label` | Asset class key |
+| `x`, `y`; `lon`, `lat` | Coordinates in UTM meters and WGS 84 degrees |
+| `support`, `n_obs` | Number of distinct panoramas and total observations in the cluster |
+| `score_mean`, `score_max`, `conf` | Mean/max detection score and aggregated confidence `1 - prod(1 - best_score_i)` |
+| `rng_min`, `rng_med` | Minimum and median horizontal range of cluster observations (m) |
+| `spread` | Median distance of cluster observations from the fused asset position (m) |
+| `best_obs` | Tile-local ID of the closest high-score observation |
+| `best_pano`, `best_row` | Panorama ID and row index of the best observation |
+| `view`, `x0`, `y0`, `x1`, `y1` | Detection view index and bounding box in `best_pano` (used by `streetnet verify`) |
+| `d_cw`, `mh_frac`, `curb_near` | Zero-GIS crosswalk distance (m), manhole overlap, and curb adjacency |
+| `n_clear` | Number of nearby panoramas (within 15 m) with unobstructed 3D sightlines to the candidate |
+| `sig2_tight`, `sig2_wide`, `sig2_comb`, `score_verified` | Zero-shot multi-distractor SigLIP 2 margins and combined verification score (added by `streetnet verify`) |
+| `estimator` | Majority localization estimator in the cluster: `depth` or `ground` |
+| `block`, `dense` | Owning 1 km tile ID and whether the tile used uncapped minimum support |
+| `source` | Configured detector routing (`sam31`, `m2f`, or `ens`) |
 
-`<name>_obs.parquet` lists the clustered observations: `pano_id`, `row` (row in the panorama's detection file),
-`model`, `label`, `raw_label`, `score`, `view`, box (`x0`, `y0`, `x1`, `y1`), `X`, `Y` (position in metres), `rng`,
-`bearing`, `asset`, `loc_src` (`self` or `pole`), `loc_est` (`depth` or `ground`), `cut_bottom`, `cut_side` and
-`block`.
-
-The published dataset renames and reduces these columns:
-
-| Map column | Dataset column |
-|---|---|
-| `label` | `class` |
-| `lon`, `lat` | `lon`, `lat` (and `geometry`) |
-| `support` | `support` |
-| `conf` | `confidence` |
-| `estimator` (`depth`, `ground`) | `position_source` (`range`, `ground`) |
-| `spread` | `spread_m` |
-| `rng_min` | `range_min_m` |
-| `best_pano` | `borough` of that panorama (the panorama id is not published) |
-
-## Configuration
+## Configuration files
 
 | File | Contents |
 |---|---|
-| `streetnet/configs/prompts.json` | the vocabulary: per class, the SAM 3 prompts and the mount type |
-| `streetnet/configs/fusion_params.json` | per-class fusion parameters and the relabelling of pedestrian signals |
-| `streetnet/configs/classes.json` | display names, groups and colours of the published classes |
+| `streetnet/configs/prompts.json` | SAM 3.1 natural-language prompts (34 prompts across 23 classes) and mount types |
+| `streetnet/configs/fusion_params.json` | Per-class fusion, prior, occlusion-support, and SigLIP 2 verification parameters |
+| `streetnet/configs/classes.json` | Display names, functional groups, and palette colors for published classes |
 
-A run can use another vocabulary (`--vocabulary`) and other fusion parameters (`--params`). The map stage leaves out
-classes without an entry in the parameter file and logs their names. The classes placed by range
-(`DEPTH_CLASSES`) and the pole carriers (`POLE_CARRIERS`) are set in `streetnet/fusion.py`. Parameters for a new
-city or camera rig should be tuned on reference data of that place.
+Custom vocabularies and fusion configurations can be supplied via `--vocabulary` and `--params`. Classes missing from the parameter file are skipped during mapping and logged.

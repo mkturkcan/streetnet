@@ -1,12 +1,12 @@
 cff-version: 1.2.0
-message: "If you use StreetNet or its New York City asset map, please cite it as below."
-title: "StreetNet: street asset maps from street-level panoramas"
+message: "If you use StreetNet or its New York City asset map, please cite it using the metadata below."
+title: "StreetNet: Open-Vocabulary Street Asset Inventories from Panoramas at City Scale"
 type: software
 authors:
   - family-names: Turkcan
     given-names: Mehmet Kerem
-version: 0.1.0
-date-released: 2026-11-24
+version: 0.2.0
+date-released: 2026-11-27
 license: AGPL-3.0-or-later
 repository-code: "https://github.com/mkturkcan/streetnet"
 keywords:
@@ -14,4 +14,4 @@ keywords:
   - asset inventory
   - street-level imagery
   - open-vocabulary segmentation
-  - mapping
+  - geospatial mapping

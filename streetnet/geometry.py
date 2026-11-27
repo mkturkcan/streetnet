@@ -2,15 +2,15 @@
 
 Frames
 ------
-cam    Panorama sensor frame: x right, y forward (the centre column of the equirectangular image), z up.
-       Pixel (u, v) of a W x H equirectangular image, pixel centres at +0.5:
-           lam = ((u + 0.5) / W - 0.5) * 2 pi     longitude: 0 at the centre column, positive to the right
+cam    Panorama sensor frame: x right, y forward (the center column of the equirectangular image), z up.
+       Pixel (u, v) of a W x H equirectangular image, pixel centers at +0.5:
+           lam = ((u + 0.5) / W - 0.5) * 2 pi     longitude: 0 at the center column, positive to the right
            phi = (0.5 - (v + 0.5) / H) * pi       latitude: positive up
            d   = (cos(phi) sin(lam), cos(phi) cos(lam), sin(phi))
 lev    The cam frame rotated so that the local ground plane is z = -h, with h the camera height.
        lev <- cam is a small rotation R_lev; the identity for a level camera.
 world  A metric map frame (UTM): x east, y north, z up. world <- lev is a rotation about z by the
-       panorama heading, the compass bearing of the centre column (clockwise from north). A lev ray with
+       panorama heading, the compass bearing of the center column (clockwise from north). A lev ray with
        azimuth lam (clockwise from forward) has compass bearing heading + lam.
 view   A pinhole camera in the OpenCV convention (x right, y down, z forward), pointed at (yaw, pitch)
        relative to cam forward.
@@ -18,6 +18,7 @@ view   A pinhole camera in the OpenCV convention (x right, y down, z forward), p
 from __future__ import annotations
 
 import math
+import zlib
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -85,7 +86,7 @@ def metadata_normal(pitch_deg, roll_deg) -> np.ndarray:
 
     The rule was calibrated on Street View metadata in the pilot study (pitch 0 = level):
         tilt = -pitch,  roll = roll wrapped to [-180, 180)
-        n    = normalise(sin(-0.7 roll), sin(tilt), 1)
+        n    = normalize(sin(-0.7 roll), sin(tilt), 1)
         n    = (0, 0, 1)  when |tilt| > 12 deg or |roll| > 8 deg
     """
     tilt = -np.asarray(pitch_deg, dtype=np.float64)
@@ -106,6 +107,131 @@ def to_world(p_lev: np.ndarray, heading_deg: float, cam_x: float, cam_y: float):
     """lev-frame points relative to the camera -> world (x, y)."""
     q = np.asarray(p_lev) @ world_from_lev(heading_deg).T
     return q[:, 0] + cam_x, q[:, 1] + cam_y
+
+
+def fit_road_plane_scale(
+    range_map: np.ndarray,
+    road_mask: np.ndarray,
+    R_lev: np.ndarray,
+    h: float = 2.5,
+    r_min: float = 3.0,
+    r_max: float = 15.0,
+    dz_max: float = -0.15,
+    min_pixels: int = 50,
+    clip_bounds: tuple[float, float] = (0.6, 1.6),
+) -> float:
+    """Zero-GT per-panorama monocular range scale factor calibrated against unobstructed road pixels.
+
+    Compares the analytical leveled road-plane range h / (-d_lev.z) against predicted radial distances
+    on pixels marked as roadway in `road_mask`, returning the median ratio clipped to `clip_bounds`.
+    Automatically aligns `road_mask` to `range_map` resolution if shapes differ.
+    Returns 1.0 if fewer than `min_pixels` valid road pixels exist.
+    """
+    H, W = range_map.shape[:2]
+    rm = np.asarray(road_mask, dtype=bool)
+    if rm.shape != (H, W):
+        vi = np.clip(np.rint(np.linspace(0, rm.shape[0] - 1, H)).astype(int), 0, rm.shape[0] - 1)
+        ui = np.clip(np.rint(np.linspace(0, rm.shape[1] - 1, W)).astype(int), 0, rm.shape[1] - 1)
+        rm = rm[np.ix_(vi, ui)]
+    ys, xs = np.nonzero(rm)
+    if len(ys) < min_pixels:
+        return 1.0
+    if len(ys) > 8192:
+        step = len(ys) // 8192
+        ys, xs = ys[::step], xs[::step]
+    d = equirect_pixel_to_ray(xs, ys, W, H) @ np.asarray(R_lev, dtype=np.float64).T
+    dz = d[:, 2]
+    r_pred = np.asarray(range_map[ys, xs], dtype=np.float64)
+    ok = (dz < dz_max) & np.isfinite(r_pred) & (r_pred > 0.5)
+    if ok.sum() < min_pixels:
+        return 1.0
+    r_road = h / (-dz[ok])
+    horiz = r_road * np.hypot(d[ok, 0], d[ok, 1])
+    keep = (horiz >= r_min) & (horiz <= r_max)
+    if keep.sum() < min_pixels:
+        return 1.0
+    alpha = float(np.median(r_road[keep] / r_pred[ok][keep]))
+    return float(np.clip(alpha, clip_bounds[0], clip_bounds[1]))
+
+
+# ----------------------------------------------------------------------------- scene-context helpers
+
+
+OCC_H, OCC_W = 128, 256
+
+# Representative target heights above ground (meters) for 3D sightline occlusion checks.
+ASSET_SIGHTLINE_Z = {
+    "storm_drain": 0.15,
+    "curb_ramp": 0.25,
+    "manhole": 0.10,
+    "fire_hydrant": 0.85,
+    "trash_can": 0.90,
+    "bike_rack": 0.85,
+    "bench": 0.85,
+    "bollard": 0.85,
+    "barrier": 0.90,
+    "planter": 0.85,
+    "bike_share_dock": 0.90,
+    "mailbox": 1.15,
+    "parking_meter": 1.45,
+    "fire_alarm_box": 1.60,
+    "tree": 2.20,
+    "kiosk": 2.40,
+    "bus_shelter": 2.30,
+    "street_light": 3.00,
+    "sign_pole": 2.20,
+    "utility_pole": 2.50,
+    "traffic_sign": 2.80,
+    "bus_stop_sign": 2.40,
+    "traffic_signal": 3.20,
+}
+
+
+def extract_crosswalk_points(
+    sem: np.ndarray,
+    cam_x: float,
+    cam_y: float,
+    heading_deg: float,
+    R_lev: np.ndarray,
+    h: float = 2.5,
+    max_points: int = 60,
+    min_pixels: int = 20,
+) -> np.ndarray:
+    """Project Mask2Former crosswalk pixels (Vistas IDs 8, 23) onto the leveled ground plane -> (K, 2) float32."""
+    Hs, Ws = sem.shape[:2]
+    ys, xs = np.nonzero((sem == 8) | (sem == 23))
+    if len(ys) < min_pixels:
+        return np.zeros((0, 2), np.float32)
+    step = max(1, len(ys) // max_points)
+    ys, xs = ys[::step], xs[::step]
+    rays = equirect_pixel_to_ray(xs.astype(float), ys.astype(float), Ws, Hs)
+    dl = rays @ np.asarray(R_lev, dtype=np.float64).T
+    ok = dl[:, 2] < -0.08
+    if not ok.any():
+        return np.zeros((0, 2), np.float32)
+    dl = dl[ok]
+    t = float(h) / (-dl[:, 2])
+    ok2 = (t > 1.5) & (t < 22.0)
+    if not ok2.any():
+        return np.zeros((0, 2), np.float32)
+    pl = dl[ok2] * t[ok2, None]
+    wx, wy = to_world(pl, heading_deg, cam_x, cam_y)
+    return np.column_stack([wx, wy]).astype(np.float32)
+
+
+def pack_occlusion_mask(sem: np.ndarray, occ_lut: np.ndarray, out_h: int = OCC_H, out_w: int = OCC_W) -> bytes:
+    """Downsample and zlib-compress a 1-bit equirectangular vehicle/structure occlusion mask (~1 KiB/pano)."""
+    Hs, Ws = sem.shape[:2]
+    vi = np.clip(np.rint(np.linspace(0, Hs - 1, out_h)).astype(int), 0, Hs - 1)
+    ui = np.clip(np.rint(np.linspace(0, Ws - 1, out_w)).astype(int), 0, Ws - 1)
+    occ = occ_lut[sem[np.ix_(vi, ui)]]
+    return zlib.compress(np.packbits(occ.ravel()).tobytes(), level=6)
+
+
+def unpack_occlusion_mask(blob: bytes, h: int = OCC_H, w: int = OCC_W) -> np.ndarray:
+    """Decode a compressed occlusion mask back into an (h, w) boolean array."""
+    raw = np.frombuffer(zlib.decompress(blob), dtype=np.uint8)
+    return np.unpackbits(raw, count=h * w).reshape(h, w).astype(bool)
 
 
 # ----------------------------------------------------------------------------- perspective views
@@ -142,7 +268,7 @@ class View:
         return np.stack([right, -up, fwd], axis=1)
 
     def pixel_to_ray(self, px, py) -> np.ndarray:
-        """cam-frame unit rays for view pixel indices (pixel centres at integers)."""
+        """cam-frame unit rays for view pixel indices (pixel centers at integers)."""
         px = np.asarray(px, dtype=np.float64)
         py = np.asarray(py, dtype=np.float64)
         a = (px + 0.5 - self.w / 2) / self.f
@@ -161,9 +287,9 @@ class View:
 
 
 def detection_views(n: int = 4, pitch: float = -10.0, fov: float = 90.0, size: int = 1008) -> tuple[View, ...]:
-    """n horizon views spaced 360/n degrees apart, pitched down. size 1008 is SAM 3's input size.
+    """n horizon views spaced 360/n degrees apart, pitched down. size 1008 is SAM 3.1's input size.
 
-    With n = 4, 90 degree views and pitch -10, a view spans elevations -55 to +35 degrees along its centre column;
+    With n = 4, 90 degree views and pitch -10, a view spans elevations -55 to +35 degrees along its center column;
     all azimuths are covered from 3.6 to 45.3 degrees below the horizon, ground contacts from 2.5 m to 40 m for a
     camera 2.5 m above the ground. Where two views meet, about 1 degree of the horizon is missed."""
     return tuple(View(yaw=i * 360.0 / n, pitch=pitch, fov=fov, w=size, h=size) for i in range(n))

@@ -10,8 +10,9 @@ Post-processing re-implements the Hugging Face / detectron2 inference on the GPU
               largest probability x mask probability; a query keeps a segment when the pixels assigned to it number
               more than 0.8 of its mask area (pixels with mask >= 0.5); the segment is its assigned pixels with
               mask >= 0.5, and its score is the query's class probability
-StreetNet takes two classes from this model: Catch Basin (panoptic segments) and Curb Cut (connected
-components of the label map, see `components`). The label map also feeds the sign filter.
+StreetNet uses this model for road-surface assets (Catch Basin panoptic segments and Curb Cut connected
+components) and scene semantics (road-plane self-calibration, crosswalk priors, vehicle occlusion, manhole
+exclusion, and traffic-sign consistency filtering).
 """
 from __future__ import annotations
 
@@ -37,10 +38,30 @@ VISTAS = [
     "Car", "Caravan", "Motorcycle", "On Rails", "Other Vehicle", "Trailer", "Truck", "Wheeled Slow",
     "Car Mount", "Ego Vehicle",
 ]
-CURB_CUT, CATCH_BASIN = 9, 36
+CURB_CUT, CATCH_BASIN, MANHOLE = 9, 36, 41
 TRAFFIC_LIGHT = {48}
 TRAFFIC_SIGN = {46, 49, 50}
 VEHICLE = {54, 55, 56, 57, 58, 59, 60, 61, 62}
+ROAD_SURFACE = {7, 8, 13, 14, 23, 24}
+CROSSWALK = {8, 23}
+CURB_SIDEWALK = {2, 9, 15}
+OCCLUDING_STRUCT = {3, 4, 5, 6, 17}
+EGO_IGNORE = {63, 64, 255}
+BAD_DEPTH = {27} | VEHICLE | EGO_IGNORE
+
+
+def _lut(ids) -> np.ndarray:
+    a = np.zeros(256, dtype=bool)
+    a[list(ids)] = True
+    return a
+
+
+ROAD_LUT = _lut(ROAD_SURFACE)
+VEHICLE_LUT = _lut(VEHICLE)
+CROSSWALK_LUT = _lut(CROSSWALK)
+CURB_SIDEWALK_LUT = _lut(CURB_SIDEWALK)
+BAD_DEPTH_LUT = _lut(BAD_DEPTH)
+OCCLUDING_LUT = _lut(VEHICLE | OCCLUDING_STRUCT | EGO_IGNORE)
 
 
 class VistasSegmenter:

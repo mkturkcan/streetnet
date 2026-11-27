@@ -2,12 +2,12 @@
 
 Columns of the index file (Parquet or CSV):
     pano_id    str      unique id; the image is <images>/<pano_id>.jpg unless `image` is given
-    lat, lon   float    WGS 84 position of the camera
-    heading    float    compass bearing of the image's centre column, degrees clockwise from north
+    lat, lon   float    WGS 84 / ITRF2020 position of the camera
+    heading    float    compass bearing of the image's center column, degrees clockwise from north
     pitch      float    camera pitch from the capture metadata, degrees, 0 = level   (optional)
     roll       float    camera roll from the capture metadata, degrees               (optional)
     nx, ny, nz float    ground normal in the cam frame; overrides pitch and roll  (optional)
-    h          float    camera height above the ground in metres, default 2.5        (optional)
+    h          float    camera height above the ground in meters, default 2.5        (optional)
     image      str      path of the equirectangular JPEG, absolute or relative to --images (optional)
 Without pitch, roll or a normal the panorama is treated as level.
 """
@@ -36,7 +36,20 @@ def transformers(epsg: int):
             Transformer.from_crs(f"EPSG:{epsg}", "EPSG:4326", always_xy=True))
 
 
-def ll_to_xy(lon, lat, epsg: int):
+def nad83_to_itrf2020(lon, lat):
+    """Transform NAD83(2011) geographic coordinates (EPSG:6318) to ITRF2020/WGS 84 (EPSG:9989)."""
+    from pyproj import Transformer
+    t = Transformer.from_crs("EPSG:6318", "EPSG:9989", always_xy=True)
+    x, y = t.transform(np.asarray(lon, np.float64), np.asarray(lat, np.float64))
+    return np.asarray(x), np.asarray(y)
+
+
+def ll_to_xy(lon, lat, epsg: int, datum: str = "wgs84"):
+    """Project geographic coordinates into UTM meters. Use datum='nad83' for NAD83(2011) GIS layers."""
+    if datum == "nad83":
+        lon, lat = nad83_to_itrf2020(lon, lat)
+    elif datum != "wgs84":
+        raise ValueError(f"unknown datum {datum!r}; expected 'wgs84' or 'nad83'")
     x, y = transformers(epsg)[0].transform(np.asarray(lon, np.float64), np.asarray(lat, np.float64))
     return np.asarray(x), np.asarray(y)
 
@@ -47,7 +60,7 @@ def xy_to_ll(x, y, epsg: int):
 
 
 def read_index(path, epsg: int | None = None) -> pd.DataFrame:
-    """Read and validate an index; returns it indexed by pano_id with x, y (UTM metres), nx, ny, nz, h.
+    """Read and validate an index; returns it indexed by pano_id with x, y (UTM meters), nx, ny, nz, h.
 
     The UTM zone is the one containing the median camera position unless `epsg` is given; it is stored in
     df.attrs["epsg"]."""

@@ -29,7 +29,8 @@ sys.path.insert(0, str(ROOT / "tools"))
 from streetnet.fusion import DEPTH_CLASSES, class_params  # noqa: E402
 
 CFG = ROOT / "streetnet" / "configs"
-M2F = {"curb_ramp": "Mask2Former-Vistas: Curb Cut", "storm_drain": "Mask2Former-Vistas: Catch Basin"}
+M2F_ONLY = {"curb_ramp": "Mask2Former-Vistas: Curb Cut"}
+M2F_ENS = {"storm_drain": "Mask2Former-Vistas: Catch Basin"}
 
 
 def replace_block(path: Path, name: str, body: str):
@@ -49,18 +50,22 @@ def class_rows() -> list[dict]:
     cls = json.loads((CFG / "classes.json").read_text())
     rows = []
     for k, c in cls["classes"].items():
-        prompts = [] if k in M2F else list(voc[k]["prompts"])
+        prompts = [] if k in M2F_ONLY else list(voc[k]["prompts"])
         if k == "traffic_signal":
             prompts += voc["pedestrian_signal"]["prompts"]
+        source = M2F_ONLY.get(k)
+        if k in M2F_ENS:
+            source = ", ".join(f'"{p}"' for p in prompts) + f" + {M2F_ENS[k]}"
         rows.append({"key": k, "name": c["name"], "experimental": bool(c.get("experimental")), "prompts": prompts,
-                     "source": M2F.get(k), "mount": "surface" if k in M2F else voc[k]["mount"],
+                     "source": source, "m2f_ens": M2F_ENS.get(k),
+                     "mount": "surface" if k in M2F_ONLY else voc[k]["mount"],
                      "placement": "range" if k in DEPTH_CLASSES else "ground", "group": c["group"],
                      "group_name": cls["groups"][c["group"]]})
     return rows
 
 
 def classes_table() -> str:
-    rows = ["| Class | Prompts (SAM 3) or source | Mount | Placement | Group |", "|---|---|---|---|---|"]
+    rows = ["| Class | SAM 3.1 prompts / source | Mount | Placement | Group |", "|---|---|---|---|---|"]
     for r in class_rows():
         src = r["source"] or ", ".join(f'"{p}"' for p in r["prompts"])
         name = r["name"] + (" (experimental)" if r["experimental"] else "")
@@ -70,14 +75,19 @@ def classes_table() -> str:
 
 def classes_html() -> str:
     out = ['<div class="table-wrap"><table>',
-           "<thead><tr><th>Class</th><th>Prompts of SAM 3 or source</th><th>Mount</th><th>Placement</th></tr></thead><tbody>"]
+           "<thead><tr><th>Class</th><th>SAM 3.1 prompts / source</th><th>Mount</th><th>Placement</th></tr></thead><tbody>"]
     group = None
     for r in class_rows():
         if r["group"] != group:
             group = r["group"]
             out.append(f'<tr class="grp-row"><td colspan="4"><span class="sq" style="background:var(--g{group})"></span>'
                        f'{html.escape(r["group_name"])}</td></tr>')
-        src = html.escape(r["source"]) if r["source"] else ", ".join(f"<code>{html.escape(p)}</code>" for p in r["prompts"])
+        if r["m2f_ens"]:
+            src = ", ".join(f"<code>{html.escape(p)}</code>" for p in r["prompts"]) + f" + {html.escape(r['m2f_ens'])}"
+        elif r["source"]:
+            src = html.escape(r["source"])
+        else:
+            src = ", ".join(f"<code>{html.escape(p)}</code>" for p in r["prompts"])
         tag = '<span class="tag">experimental</span>' if r["experimental"] else ""
         out.append(f'<tr><td class="cls">{html.escape(r["name"])}{tag}</td><td>{src}</td><td>{r["mount"]}</td>'
                    f'<td>{r["placement"]}</td></tr>')
@@ -88,15 +98,17 @@ def classes_html() -> str:
 def params_table() -> str:
     P = json.loads((CFG / "fusion_params.json").read_text())
     cls = json.loads((CFG / "classes.json").read_text())["classes"]
-    rows = ["| Class | R_max (m) | r_c (m) | Clustering | Cluster position | score_thr | min_support | conf_thr | Tuned | Dev F1 at 3 m | Dev reference points |",
-            "|---|---:|---:|---|---|---:|---:|---:|---|---:|---:|"]
+    rows = ["| Class | Source | R_max (m) | r_c (m) | Clustering | score_thr | min_support | conf_thr | w_sig | sig_thr | Tuned | Dev F1 at 3 m |",
+            "|---|---|---:|---:|---|---:|---:|---:|---:|---:|---|---:|"]
     for k in cls:
         p = class_params(P, k)
         dev = P["per_class"].get(k, {})
-        rows.append(f"| {cls[k]['name']} | {p['R_max']:g} | {p['r_c']:g} | {p['method']} | {p['pos']} | {p['score_thr']:g} | "
-                    f"{p['min_support']} | {p['conf_thr']:g} | {'yes' if dev.get('tuned') else 'no'} | "
-                    f"{f3(dev['dev_f1']) if 'dev_f1' in dev else ''} | "
-                    f"{dev['dev_tp'] + dev['dev_fn'] if 'dev_tp' in dev else ''} |")
+        sup = f"{p['min_support']}{'+occ' if p.get('use_occ') else ''}"
+        ws = f"{p['w_sig']:g}" if p.get("w_sig", 0.0) > 0 else "0"
+        st = f"{p['sig_thr']:g}" if p.get("w_sig", 0.0) > 0 else ""
+        rows.append(f"| {cls[k]['name']} | {p['source']} | {p['R_max']:g} | {p['r_c']:g} | {p['method']} | "
+                    f"{p['score_thr']:g} | {sup} | {p['conf_thr']:g} | {ws} | {st} | "
+                    f"{'yes' if dev.get('tuned') else 'no'} | {f3(dev['dev_f1']) if 'dev_f1' in dev else ''} |")
     return "\n".join(rows)
 
 
@@ -144,9 +156,9 @@ def accuracy_html(S: dict) -> str:
 
 def nyc_readme(S: dict) -> str:
     a = S["accuracy_R3"]["_all"]
-    return (f"Version {S['version']}: {S['n_assets']:,} assets in {S['n_classes']} classes from {S['n_panos']:,} panoramas "
-            f"captured between {S['capture_years'][0]} and {S['capture_years'][1]}. F1 {f3(a['f1'])} at a matching radius "
-            f"of 3 m over {a['n_gt']:,} reference assets of NYC Open Data "
+    return (f"Version {S['version']}: {S['n_assets']:,} assets across {S['n_classes']} classes built from {S['n_panos']:,} panoramas "
+            f"captured between {S['capture_years'][0]} and {S['capture_years'][1]}, achieving {f3(a['f1'])} F1 at a 3 m matching radius "
+            f"over {a['n_gt']:,} NYC Open Data reference points "
             f"([per-class results](docs/evaluation.md#results)).")
 
 
@@ -154,12 +166,12 @@ def nyc_html(S: dict) -> str:
     a = S["accuracy_R3"]["_all"]
     e = html.escape
     return "\n".join([
-        f"<p><strong>Version {e(S['version'])}</strong>: {S['n_assets']:,} assets in {S['n_classes']} classes from "
+        f"<p><strong>Version {e(S['version'])}</strong>: {S['n_assets']:,} assets across {S['n_classes']} classes from "
         f"{S['n_panos']:,} panoramas captured between {S['capture_years'][0]} and {S['capture_years'][1]}. {e(S['selection'])}</p>",
-        f"<p>{e(S['region_note'])} Over {a['n_gt']:,} reference assets of NYC Open Data in that region, the map has "
-        f"precision {f3(a['precision'])}, recall {f3(a['recall'])} and F1 {f3(a['f1'])} at a matching radius of 3 m "
+        f"<p>{e(S['region_note'])} Across {a['n_gt']:,} NYC Open Data reference assets in this region, the map achieves "
+        f"{f3(a['precision'])} precision, {f3(a['recall'])} recall, and {f3(a['f1'])} F1 at a 3 m matching radius "
         f'(<a href="#accuracy">table</a>).</p>',
-        "<p>The dataset holds the asset map, the reference points and the evaluation region, and no imagery.</p>"])
+        "<p>The dataset distributes the fused asset map, municipal reference points, and evaluation region geometry; no imagery or panorama identifiers are included.</p>"])
 
 
 def main():

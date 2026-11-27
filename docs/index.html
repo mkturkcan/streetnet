@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>StreetNet</title>
-<meta name="description" content="StreetNet maps street assets from street-level panoramas: 22 classes segmented in each panorama, placed from their ground contact point and fused into one georeferenced point per asset.">
+<meta name="description" content="StreetNet constructs open-vocabulary street asset inventories from street-level panoramas via concept segmentation, single-view metric localization, and cross-panorama fusion.">
 <meta property="og:title" content="StreetNet">
-<meta property="og:description" content="An automated, ready-to-deploy asset management system that maps street assets from street-level panoramas.">
+<meta property="og:description" content="Open-vocabulary street asset inventories from street-level panoramas at city scale.">
 <meta property="og:image" content="https://mkturkcan.github.io/streetnet/assets/figures/hero.jpg">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
@@ -41,17 +41,18 @@
   <section class="hero">
     <div class="wrap">
       <h1>StreetNet</h1>
-      <p class="lede">An automated, ready-to-deploy asset management system that maps street assets from street-level panoramas.</p>
+      <p class="lede">Open-vocabulary street asset inventories from street-level panoramas at city scale.</p>
       <div class="cta">
         <a class="btn primary" href="https://github.com/mkturkcan/streetnet">
           <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>Code</a>
-        <a class="btn" href="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc">New York City map</a>
+        <a class="btn" href="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc">NYC Asset Map</a>
+        <a class="btn" href="https://huggingface.co/spaces/mehmetkeremturkcan/streetnet-viewer">Map Viewer</a>
         <a class="btn" href="#quickstart">Quickstart</a>
         <a class="btn" href="method.html">Method</a>
       </div>
       <figure class="hero-fig">
-        <div class="photo"><img src="assets/img/hero.jpg" width="2400" height="1000" alt="A street intersection in Harlem in one panorama, with the segmented street lights, signal poles, traffic signals, trash cans, manhole covers, curb ramps and trees outlined in the colours of their groups"><span class="credit">Imagery © Google</span></div>
-        <figcaption class="cap">Detections in one panorama in Harlem, coloured by class group.</figcaption>
+        <div class="photo"><img src="assets/img/hero.jpg" width="2400" height="1000" alt="Street intersection in Harlem showing segmented street lights, signal poles, traffic signals, trash cans, manhole covers, curb ramps, and street trees colored by asset group"><span class="credit">Imagery © Google</span></div>
+        <figcaption class="cap">Street asset detections in a Harlem panorama, colored by asset group.</figcaption>
       </figure>
     </div>
   </section>
@@ -60,23 +61,23 @@
     <div class="wrap">
       <div class="sec-h">
         <h2>Videos</h2>
-        <p>Both videos show the Upper Manhattan pilot study, from which the released pipeline was derived.</p>
+        <p>Overview and methodology recordings from the Upper Manhattan pilot study that informed the released pipeline.</p>
       </div>
       <div class="sec-body videos">
         <figure class="video">
           <div class="photo"><video controls preload="none" playsinline poster="assets/video/trailer.jpg" aria-label="StreetNet trailer">
             <source src="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-media/resolve/main/streetnet_trailer.mp4" type="video/mp4"></video></div>
-          <h3>Trailer <span>1:50</span></h3>
-          <p>The asset classes and the interactive map of the pilot, with assets inspected in their source panoramas.</p>
+          <h3>Overview Trailer <span>1:50</span></h3>
+          <p>Walkthrough of the mapped asset classes and interactive pilot inventory, linking mapped assets back to their source panoramas.</p>
         </figure>
         <figure class="video">
           <div class="photo"><video controls preload="none" playsinline poster="assets/video/methodology.jpg" aria-label="StreetNet methodology video">
             <source src="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-media/resolve/main/streetnet_methodology.mp4" type="video/mp4"></video></div>
           <h3>Methodology <span>6:46</span></h3>
-          <p>The pilot's camera model, segmentation, ranging experiments, multi-view fusion, threshold search, evaluation and error audit.</p>
+          <p>Detailed breakdown of camera geometry, open-vocabulary and panoptic segmentation, monocular range benchmarks, multi-view fusion, hyperparameter search, and error analysis.</p>
         </figure>
       </div>
-      <p class="note">The videos show the pilot configuration: eight views and 34 prompts per panorama and 18 mapped classes. The pilot's map application and condition layers are not part of this repository. The released pipeline uses four views and 25 prompts and maps 22 classes. Imagery © Google.</p>
+      <p class="note">These recordings depict the Upper Manhattan pilot configuration (eight views, 34 prompts per panorama, and 18 mapped classes); the pilot web interface and road-condition layers are not part of this release. The released pipeline runs four views and 25 prompts across 22 asset classes. Imagery © Google.</p>
     </div>
   </section>
 
@@ -84,29 +85,29 @@
     <div class="wrap">
       <div class="sec-h">
         <h2>Method</h2>
-        <p>Detection runs once per panorama on a GPU. Mapping reads the detections of all panoramas, places each one in a metric frame and clusters the detections of the same asset.</p>
+        <p>GPU detection runs once per panorama to produce compact instance records. CPU mapping operates solely on those records, localizing each detection in a metric coordinate frame and fusing observations across overlapping panoramas.</p>
       </div>
       <div class="sec-body">
         <figure class="fig">
-          <a href="assets/figures/overview.jpg" class="zoom" aria-label="Open the figure at full size"><picture><source srcset="assets/figures/overview-dark.jpg" media="(prefers-color-scheme: dark)" data-dark>
-            <img src="assets/figures/overview.jpg" width="2400" height="1660" loading="lazy" alt="One panorama with its four views, one view with the segmented assets, the MoGe-2 range of that view with the ground contact points, and a top view of the observations fused into assets"></picture></a>
+          <a href="assets/figures/overview.jpg" class="zoom" aria-label="Open figure at full size"><picture><source srcset="assets/figures/overview-dark.jpg" media="(prefers-color-scheme: dark)" data-dark>
+            <img src="assets/figures/overview.jpg" width="2400" height="1660" loading="lazy" alt="Equirectangular panorama with four perspective cutouts, segmented assets, MoGe-2 metric range with ground-contact points, and top-down multi-view fusion"></picture></a>
         </figure>
         <div class="facts">
-          <div class="fact"><h3>Views</h3><p>Four pinhole views per panorama, 90° wide and pitched 10° down, at 1008 × 1008 px.</p></div>
-          <div class="fact"><h3>Segmentation</h3><p>SAM 3 with 25 text prompts in one batch. Mask2Former trained on Mapillary Vistas segments curb ramps and catch basins, and its labels filter sign detections on vehicles and signal heads.</p></div>
-          <div class="fact"><h3>Ground contact</h3><p>The median column of the lowest rows of each mask. Its range is the median of five MoGe-2 samples on a strip directly above that pixel.</p></div>
-          <div class="fact"><h3>Placement</h3><p>Trees, street lights, signs, signals, benches and bike racks are placed at their MoGe-2 range when it is available, the other classes on a ground plane 2.5 m below the camera.</p></div>
-          <div class="fact"><h3>Fusion</h3><p>Detections of a class within a class-specific radius of 1 to 4 m form one asset at their weighted median, refined by anisotropic least squares for 12 classes. Support counts the panoramas; confidence is 1 − prod(1 − best score of each panorama).</p></div>
-          <div class="fact"><h3>City scale</h3><p>Blocks of 1 km with a 60 m halo are mapped in parallel on CPUs. Detection takes 0.9 s per panorama on one GPU.</p></div>
+          <div class="fact"><h3>Perspective views</h3><p>Four evenly spaced pinhole views per panorama, each with a 90° field of view, −10° pitch, and 1008 × 1008 resolution.</p></div>
+          <div class="fact"><h3>Segmentation</h3><p>SAM 3.1 segments 34 natural-language prompts in fixed-shape batches. Mask2Former (Mapillary Vistas) segments curb ramps, ensembles catch basins, and supplies road, crosswalk, manhole, and vehicle semantics.</p></div>
+          <div class="fact"><h3>Self-calibrated depth</h3><p>MoGe-3 (ViT-G) predicts metric 3D point maps self-calibrated per panorama against unobstructed roadway pixels without external LiDAR or ground truth.</p></div>
+          <div class="fact"><h3>Occlusion-aware localization</h3><p>Distance-prone classes use self-calibrated MoGe-3 range; ground and surface classes intersect a leveled ground plane unless parked cars hide the base, automatically switching to vehicle-masked interior depth.</p></div>
+          <div class="fact"><h3>Fusion and verification</h3><p>Bounded average-linkage clustering, anisotropic Cauchy refinement, zero-GIS crosswalk/manhole priors, occlusion-aware adaptive support, and zero-shot multi-distractor SigLIP 2 verification.</p></div>
+          <div class="fact"><h3>City-scale deployment</h3><p>GPU detection writes compact Parquet records alongside lightweight crosswalk and occlusion sidecars; CPU mapping parallelizes over 1 km tiles with 60 m halos.</p></div>
         </div>
         <figure class="fig" style="margin-top:40px">
-          <a href="assets/figures/pipeline.png" class="zoom" aria-label="Open the figure at full size"><picture><source srcset="assets/figures/pipeline-dark.png" media="(prefers-color-scheme: dark)" data-dark>
-            <img src="assets/figures/pipeline.png" width="2400" height="1344" loading="lazy" alt="Detection once per panorama on a GPU: four views, SAM 3, Mask2Former and MoGe-2, detection records. Mapping over all panoramas on CPUs: pole association, localization, fusion, asset map. Evaluation against reference points."></picture></a>
+          <a href="assets/figures/pipeline.png" class="zoom" aria-label="Open figure at full size"><picture><source srcset="assets/figures/pipeline-dark.png" media="(prefers-color-scheme: dark)" data-dark>
+            <img src="assets/figures/pipeline.png" width="2400" height="1344" loading="lazy" alt="Two-stage pipeline: per-panorama GPU detection, tiled CPU mapping, and evaluation against reference points"></picture></a>
         </figure>
         <figure class="fig" style="margin-top:32px">
-          <a href="assets/figures/placement.png" class="zoom" aria-label="Open the figure at full size"><picture><source srcset="assets/figures/placement-dark.png" media="(prefers-color-scheme: dark)" data-dark>
-            <img src="assets/figures/placement.png" width="2400" height="1080" loading="lazy" alt="Side view to scale of the three placement rules, ground plane, metric range and pole, and a top view of fusion across three panoramas"></picture></a>
-          <figcaption>The <a href="method.html">method</a> gives each step as pseudocode with its constants, and the per-class parameters with their tuning.</figcaption>
+          <a href="assets/figures/placement.png" class="zoom" aria-label="Open figure at full size"><picture><source srcset="assets/figures/placement-dark.png" media="(prefers-color-scheme: dark)" data-dark>
+            <img src="assets/figures/placement.png" width="2400" height="1080" loading="lazy" alt="Side view of ground-plane, metric-range, and pole-carrier localization rules alongside top-down multi-view fusion across three panoramas"></picture></a>
+          <figcaption>See <a href="method.html">Method</a> for complete stage-by-stage pseudocode, constants, and per-class fusion parameters.</figcaption>
         </figure>
       </div>
     </div>
@@ -116,12 +117,12 @@
     <div class="wrap">
       <div class="sec-h">
         <h2>Classes</h2>
-        <p>The map has 22 classes in eight groups. A class is defined by text prompts of SAM 3 or by a class of Mask2Former, so a run can use another vocabulary.</p>
+        <p>StreetNet maps 22 asset classes organized into eight functional groups. Classes are specified by natural-language SAM 3.1 prompts and can be customized for new vocabularies; curb ramps come from Mask2Former and catch basins ensemble both detectors.</p>
       </div>
       <div class="sec-body">
 <!-- classes:start -->
 <div class="table-wrap"><table>
-<thead><tr><th>Class</th><th>Prompts of SAM 3 or source</th><th>Mount</th><th>Placement</th></tr></thead><tbody>
+<thead><tr><th>Class</th><th>SAM 3.1 prompts / source</th><th>Mount</th><th>Placement</th></tr></thead><tbody>
 <tr class="grp-row"><td colspan="4"><span class="sq" style="background:var(--g0)"></span>Lighting and poles</td></tr>
 <tr><td class="cls">Street light</td><td><code>street light pole</code></td><td>ground</td><td>range</td></tr>
 <tr><td class="cls">Sign pole</td><td><code>sign pole</code></td><td>ground</td><td>ground</td></tr>
@@ -131,30 +132,30 @@
 <tr><td class="cls">Bus stop sign</td><td><code>bus stop sign</code></td><td>pole</td><td>range</td></tr>
 <tr class="grp-row"><td colspan="4"><span class="sq" style="background:var(--g2)"></span>Ground surface</td></tr>
 <tr><td class="cls">Manhole cover</td><td><code>manhole cover</code></td><td>surface</td><td>ground</td></tr>
-<tr><td class="cls">Catch basin</td><td>Mask2Former-Vistas: Catch Basin</td><td>surface</td><td>ground</td></tr>
+<tr><td class="cls">Catch basin</td><td><code>storm drain</code>, <code>street drainage grate</code> + Mask2Former-Vistas: Catch Basin</td><td>surface</td><td>ground</td></tr>
 <tr><td class="cls">Curb ramp</td><td>Mask2Former-Vistas: Curb Cut</td><td>surface</td><td>ground</td></tr>
 <tr class="grp-row"><td colspan="4"><span class="sq" style="background:var(--g3)"></span>Safety and emergency</td></tr>
-<tr><td class="cls">Fire hydrant</td><td><code>fire hydrant</code></td><td>ground</td><td>ground</td></tr>
+<tr><td class="cls">Fire hydrant</td><td><code>fire hydrant</code>, <code>street fire hydrant</code></td><td>ground</td><td>ground</td></tr>
 <tr><td class="cls">Bollard</td><td><code>bollard</code></td><td>ground</td><td>ground</td></tr>
 <tr><td class="cls">Barrier</td><td><code>construction barrier</code></td><td>ground</td><td>ground</td></tr>
-<tr><td class="cls">Fire alarm box<span class="tag">experimental</span></td><td><code>fire alarm box</code></td><td>ground</td><td>ground</td></tr>
+<tr><td class="cls">Fire alarm box<span class="tag">experimental</span></td><td><code>fire alarm box</code>, <code>red street fire call box</code></td><td>ground</td><td>ground</td></tr>
 <tr class="grp-row"><td colspan="4"><span class="sq" style="background:var(--g4)"></span>Sanitation</td></tr>
-<tr><td class="cls">Trash can</td><td><code>trash can</code></td><td>ground</td><td>ground</td></tr>
+<tr><td class="cls">Trash can</td><td><code>trash can</code>, <code>public litter basket</code></td><td>ground</td><td>ground</td></tr>
 <tr class="grp-row"><td colspan="4"><span class="sq" style="background:var(--g5)"></span>Greenery</td></tr>
 <tr><td class="cls">Street tree</td><td><code>tree trunk</code></td><td>ground</td><td>range</td></tr>
 <tr><td class="cls">Planter<span class="tag">experimental</span></td><td><code>planter</code></td><td>ground</td><td>ground</td></tr>
 <tr class="grp-row"><td colspan="4"><span class="sq" style="background:var(--g6)"></span>Transit and mobility</td></tr>
-<tr><td class="cls">Bus shelter</td><td><code>bus stop shelter</code></td><td>ground</td><td>ground</td></tr>
-<tr><td class="cls">Bike rack</td><td><code>bike rack</code></td><td>ground</td><td>range</td></tr>
+<tr><td class="cls">Bus shelter</td><td><code>bus stop shelter</code>, <code>glass bus shelter</code></td><td>ground</td><td>ground</td></tr>
+<tr><td class="cls">Bike rack</td><td><code>bike rack</code>, <code>bicycle rack</code></td><td>ground</td><td>range</td></tr>
 <tr><td class="cls">Bike share dock<span class="tag">experimental</span></td><td><code>bike share docking station</code></td><td>ground</td><td>ground</td></tr>
-<tr><td class="cls">Parking meter<span class="tag">experimental</span></td><td><code>parking pay station</code>, <code>parking meter</code></td><td>ground</td><td>ground</td></tr>
+<tr><td class="cls">Parking meter<span class="tag">experimental</span></td><td><code>parking meter</code>, <code>parking pay station</code></td><td>ground</td><td>ground</td></tr>
 <tr class="grp-row"><td colspan="4"><span class="sq" style="background:var(--g7)"></span>Amenities</td></tr>
-<tr><td class="cls">Bench</td><td><code>bench</code></td><td>ground</td><td>range</td></tr>
+<tr><td class="cls">Bench</td><td><code>bench</code>, <code>sidewalk bench</code></td><td>ground</td><td>range</td></tr>
 <tr><td class="cls">Mailbox</td><td><code>mailbox</code></td><td>ground</td><td>ground</td></tr>
-<tr><td class="cls">LinkNYC kiosk</td><td><code>LinkNYC kiosk</code></td><td>ground</td><td>ground</td></tr>
+<tr><td class="cls">LinkNYC kiosk</td><td><code>tall black sidewalk digital kiosk</code>, <code>LinkNYC kiosk</code></td><td>ground</td><td>ground</td></tr>
 </tbody></table></div>
 <!-- classes:end -->
-        <p class="cap">Placement: <em>range</em> classes are placed at the MoGe-2 range along the contact ray, <em>ground</em> classes where that ray meets the ground plane; pole-mounted classes use the contact point of the pole below them. Experimental classes had a precision below 0.67 in the pilot study's visual audit of up to 12 detections per class, or were not audited.</p>
+        <p class="cap">Placement: <em>range</em> classes are localized via self-calibrated MoGe-3 metric range along the contact ray; <em>ground</em> classes intersect the leveled ground plane (automatically switching to vehicle-masked interior range when parked cars occlude the base); pole-mounted classes inherit their supporting pole's geometry.</p>
       </div>
     </div>
   </section>
@@ -163,19 +164,19 @@
     <div class="wrap">
       <div class="sec-h">
         <h2>New York City</h2>
-        <p>The New York City run covers 1,170,687 panoramas of the five boroughs, processed coarse to fine so that the panoramas of each finished level form an even sample of the city.</p>
+        <p>The citywide deployment covers 1,170,687 panoramas across all five boroughs, scheduled coarse-to-fine via a spatial quadtree so every completed level maintains uniform citywide coverage.</p>
       </div>
       <div class="sec-body">
         <figure class="fig">
-          <a href="assets/figures/nyc_map.jpg" class="zoom" aria-label="Open the figure at full size"><picture><source srcset="assets/figures/nyc_map-dark.jpg" media="(prefers-color-scheme: dark)" data-dark>
-            <img src="assets/figures/nyc_map.jpg" width="2400" height="1646" loading="lazy" alt="Assets per 100 m of street across the five boroughs, and a close-up at W 125th St and Lenox Ave with one square per asset"></picture></a>
+          <a href="assets/figures/nyc_map.jpg" class="zoom" aria-label="Open figure at full size"><picture><source srcset="assets/figures/nyc_map-dark.jpg" media="(prefers-color-scheme: dark)" data-dark>
+            <img src="assets/figures/nyc_map.jpg" width="2400" height="1646" loading="lazy" alt="Asset density per 100 m of street across the five boroughs and a close-up at W 125th St and Lenox Ave"></picture></a>
         </figure>
         <div class="stack" style="margin-top:36px">
           <div class="prose">
 <!-- nyc:start -->
-<p><strong>Version v0.2 (plan levels up to 20)</strong>: 4,265,125 assets in 22 classes from 401,419 panoramas captured between 2007 and 2026. Plan levels up to 20 (one panorama per cell of about 29 m) across the five boroughs; minimum support capped at 1.</p>
-<p>The evaluation region is the union of 15 m disks around the 5996 mapped panoramas that lie within 20 m of a panorama of the Upper Manhattan pilot study and at least 30 m from its development split, on which the fusion parameters were tuned. Over 29,806 reference assets of NYC Open Data in that region, the map has precision 0.255, recall 0.345 and F1 0.293 at a matching radius of 3 m (<a href="#accuracy">table</a>).</p>
-<p>The dataset holds the asset map, the reference points and the evaluation region, and no imagery.</p>
+<p><strong>Version v0.2 (plan levels up to 20)</strong>: 4,265,125 assets across 22 classes from 401,419 panoramas captured between 2007 and 2026. Quadtree plan levels up to 20 (one panorama per ~29 m cell) across all five boroughs, with minimum view support capped at 1.</p>
+<p>The evaluation region is the union of 15 m disks around the 5,996 mapped panoramas located within 20 m of the Upper Manhattan pilot footprint and at least 30 m from the development split used to tune fusion parameters. Across 29,806 NYC Open Data reference assets in this region, the map achieves 0.255 precision, 0.345 recall, and 0.293 F1 at a 3 m matching radius (<a href="#accuracy">table</a>).</p>
+<p>The dataset distributes the fused asset map, municipal reference points, and evaluation region geometry; no imagery or panorama identifiers are included.</p>
 <!-- nyc:end -->
           </div>
           <div class="steps">
@@ -195,7 +196,7 @@ hydrants = assets[(assets["class"] == "fire_hydrant") &amp; (assets["support"] &
     <div class="wrap">
       <div class="sec-h">
         <h2>Accuracy</h2>
-        <p>Predictions and reference points of the same class within 3 m are matched one to one inside an evaluation region in the pilot area, which excludes the panoramas on which the fusion parameters were tuned.</p>
+        <p>Same-class predictions and municipal reference points are matched one-to-one within a 3 m radius inside a disjoint test region of the pilot footprint, excluding the development split used for hyperparameter tuning.</p>
       </div>
       <div class="sec-body">
 <!-- accuracy:start -->
@@ -218,7 +219,7 @@ hydrants = assets[(assets["class"] == "fire_hydrant") &amp; (assets["support"] &
 <tr class="total"><td>All classes</td><td class="n">29,806</td><td class="n">40,308</td><td class="n">0.255</td><td class="n">0.345</td><td class="n">0.293</td><td class="n"></td></tr>
 </tbody></table></div>
 <!-- accuracy:end -->
-        <p class="cap">Reference points come from NYC Open Data. Several layers are partial or dated: sign work orders record the signs the city has worked on, the tree census dates from 2015 and the ramp survey from 2019, and a detected asset missing from its layer counts as a false positive. The median error is over pairs matched within 5 m. The <a href="evaluation.html">evaluation</a> gives the protocol and the reference layers.</p>
+        <p class="cap">Reference layers come from NYC Open Data. Several layers are partial or dated (work-order sign records, the 2015 tree census, and the 2019 ramp survey), so valid detections missing from a reference layer count as false positives. Median positional error is computed over pairs matched within 5 m. See <a href="evaluation.html">Evaluation</a> for full protocol details and source datasets.</p>
       </div>
     </div>
   </section>
@@ -227,22 +228,21 @@ hydrants = assets[(assets["class"] == "fire_hydrant") &amp; (assets["support"] &
     <div class="wrap">
       <div class="sec-h">
         <h2>Throughput</h2>
-        <p>Measured in the New York City run on four NVIDIA RTX PRO 6000 Blackwell Max-Q GPUs, one detection process per GPU.</p>
+        <p>Measured during the citywide New York City run on four NVIDIA RTX PRO 6000 Blackwell Max-Q GPUs (one detection worker per GPU).</p>
       </div>
       <div class="sec-body split">
         <div class="table-wrap"><table>
-          <thead><tr><th>Stage, per panorama</th><th class="n">GPU time</th></tr></thead>
+          <thead><tr><th>Stage (per panorama)</th><th class="n">Model</th></tr></thead>
           <tbody>
-            <tr><td>SAM 3: 4 views × 25 prompts, lazy mask head, compiled</td><td class="n">0.45 s</td></tr>
-            <tr><td>Mask2Former Swin-L: 4 views at 1024 px</td><td class="n">0.27 s</td></tr>
-            <tr><td>MoGe-2: 4 views, float16</td><td class="n">0.14 s</td></tr>
+            <tr><td>Concept segmentation (4 views × 34 prompts, lazy mask head)</td><td class="n">SAM 3.1</td></tr>
+            <tr><td>Panoptic and scene semantics (4 views at 1024 px)</td><td class="n">Mask2Former Swin-L</td></tr>
+            <tr><td>Self-calibrated monocular metric 3D geometry (4 views)</td><td class="n">MoGe-3 (ViT-G)</td></tr>
+            <tr><td>Per-candidate zero-shot verification (tight + wide crops)</td><td class="n">SigLIP 2 (SO400M)</td></tr>
           </tbody></table></div>
         <dl class="kv">
-          <dt>End to end</dt><dd>0.90 s per panorama and GPU</dd>
-          <dt>Four GPUs</dt><dd>16,000 panoramas per hour</dd>
-          <dt>GPU memory</dt><dd>33 to 37 GB per process</dd>
-          <dt>Detections</dt><dd>33 KiB per panorama</dd>
-          <dt>Details</dt><dd><a href="performance.html">Optimizations and their effect on the output</a></dd>
+          <dt>Hardware</dt><dd>4 × NVIDIA RTX PRO 6000 (96 GB)</dd>
+          <dt>Detection sidecars</dt><dd>Parquet + crosswalk points + 1 KiB occlusion mask</dd>
+          <dt>Details</dt><dd><a href="performance.html">Optimizations and reproducibility</a></dd>
         </dl>
       </div>
     </div>
@@ -252,26 +252,27 @@ hydrants = assets[(assets["class"] == "fire_hydrant") &amp; (assets["support"] &
     <div class="wrap">
       <div class="sec-h">
         <h2>Quickstart</h2>
-        <p>Detection needs Linux, an NVIDIA GPU and Python 3.10 to 3.12. Mapping and evaluation run on CPUs with Python 3.10 or newer.</p>
+        <p>Detection and verification require Linux, an NVIDIA GPU, and Python 3.10 to 3.12. Mapping and evaluation run on CPU with Python 3.10+.</p>
       </div>
       <div class="sec-body steps">
         <div class="step"><h3><span class="step-n">1</span>Install</h3>
-<pre><code>git clone https://github.com/mkturkcan/streetnet.git &amp;&amp; cd streetnet
-pip install -e ".[detect]"     <span class="c"># for mapping and evaluation on CPUs: pip install -e .</span>
-hf auth login                  <span class="c"># SAM 3 is gated: accept its license at huggingface.co/facebook/sam3 first</span></code></pre></div>
-        <div class="step"><h3><span class="step-n">2</span>Detect, one process per GPU</h3>
+<pre><code>git clone -b v2 https://github.com/mkturkcan/streetnet.git &amp;&amp; cd streetnet
+pip install -e ".[detect]"     <span class="c"># CPU-only mapping and evaluation: pip install -e .</span>
+hf auth login                  <span class="c"># SAM 3.1 is gated; accept its license at huggingface.co/facebook/sam3.1 first</span></code></pre></div>
+        <div class="step"><h3><span class="step-n">2</span>Detect (one process per GPU)</h3>
 <pre><code>streetnet detect --index panos.parquet --images panoramas/ --out runs/city --gpus 0,1,2,3 --compile
 streetnet status --index panos.parquet --run runs/city</code></pre></div>
-        <div class="step"><h3><span class="step-n">3</span>Map</h3>
-<pre><code>streetnet map --index panos.parquet --run runs/city --name city</code></pre></div>
-        <div class="step"><h3><span class="step-n">4</span>Evaluate against reference points</h3>
-<pre><code>streetnet eval --index panos.parquet --map runs/city/map/city_assets.parquet --gt reference.parquet</code></pre></div>
+        <div class="step"><h3><span class="step-n">3</span>Fuse and verify</h3>
+<pre><code>streetnet map --index panos.parquet --run runs/city --name city --defer-verify
+streetnet verify --index panos.parquet --images panoramas/ --run runs/city --map runs/city/map/city_assets.parquet --out runs/city/map/city_verified_assets.parquet --gpus 0,1,2,3</code></pre></div>
+        <div class="step"><h3><span class="step-n">4</span>Evaluate against municipal reference data</h3>
+<pre><code>streetnet eval --index panos.parquet --map runs/city/map/city_verified_assets.parquet --gt reference.parquet --gt-datum nad83</code></pre></div>
         <details class="more"><summary>Inputs and installation notes</summary>
           <ul>
-            <li>The index has one row per panorama: <code>pano_id</code>, <code>lat</code>, <code>lon</code>, <code>heading</code>, and optionally <code>pitch</code>, <code>roll</code> and the camera height <code>h</code>. Reference points have <code>gt_key</code>, <code>lon</code> and <code>lat</code>. The <a href="data.html">data formats</a> list all columns.</li>
-            <li>The checkpoints of SAM 3, Mask2Former and MoGe-2 download on first use. SAM 3 requires numpy below 2.0.</li>
-            <li>MoGe installs <code>opencv-python</code>, which needs <code>libGL</code>. On servers without it, such as CUDA containers, replace it with <code>opencv-python-headless</code>.</li>
-            <li>Tested with Python 3.11, PyTorch 2.12 with CUDA 13.0, transformers 5.8.1, SAM 3 at commit <code>96914d2</code> and MoGe at commit <code>925b8ed</code>.</li>
+            <li>The panorama index contains one row per panorama (<code>pano_id</code>, <code>lat</code>, <code>lon</code>, <code>heading</code>, and optional <code>pitch</code>, <code>roll</code>, and camera height <code>h</code>). Reference tables specify <code>gt_key</code>, <code>lon</code>, and <code>lat</code>. See <a href="data.html">Data formats</a> for full schemas.</li>
+            <li>Checkpoints for SAM 3.1, Mask2Former, MoGe-3, and SigLIP 2 download automatically on first use. SAM 3.1 requires NumPy &lt; 2.0; MoGe-3 sparse refinement requires <code>flex_gemm</code>.</li>
+            <li>MoGe installs <code>opencv-python</code>, which requires <code>libGL</code>. On headless servers or CUDA containers, substitute <code>opencv-python-headless</code>.</li>
+            <li>Verified with Python 3.11, PyTorch 2.12 (CUDA 13.0), <code>transformers</code> 5.8.1, SAM 3 commit <code>96914d2</code>, and MoGe commit <code>74fbce0</code>.</li>
           </ul>
         </details>
       </div>
@@ -282,10 +283,10 @@ streetnet status --index panos.parquet --run runs/city</code></pre></div>
     <div class="wrap">
       <div class="sec-h"><h2>Documentation</h2></div>
       <div class="sec-body cards">
-        <a class="card-link" href="method.html"><h3>Method</h3><p>Pseudocode of each step with its constants, the per-class parameters and the city-scale processing.</p><span class="go">Read the method</span></a>
-        <a class="card-link" href="data.html"><h3>Data formats</h3><p>The panorama index, reference points, run folder, and the detection and asset tables.</p><span class="go">Read the formats</span></a>
-        <a class="card-link" href="evaluation.html"><h3>Evaluation</h3><p>Matching protocol, reference layers of NYC Open Data, evaluation region and results.</p><span class="go">Read the evaluation</span></a>
-        <a class="card-link" href="performance.html"><h3>Performance</h3><p>Throughput on four GPUs and the measured effect of each optimization on the output.</p><span class="go">Read the measurements</span></a>
+        <a class="card-link" href="method.html"><h3>Method</h3><p>Stage-by-stage pseudocode, geometric constants, per-class fusion hyperparameters, and city-scale tiling.</p><span class="go">Read method</span></a>
+        <a class="card-link" href="data.html"><h3>Data formats</h3><p>Schemas for the panorama index, reference layers, run folder, detection records, and asset tables.</p><span class="go">Read formats</span></a>
+        <a class="card-link" href="evaluation.html"><h3>Evaluation</h3><p>Hungarian matching protocol, NYC Open Data reference layers, disjoint test region, and per-class results.</p><span class="go">Read evaluation</span></a>
+        <a class="card-link" href="performance.html"><h3>Performance</h3><p>Multi-GPU throughput benchmarks and measured fidelity impact of every inference optimization.</p><span class="go">Read benchmarks</span></a>
       </div>
     </div>
   </section>
@@ -296,9 +297,9 @@ streetnet status --index panos.parquet --run runs/city</code></pre></div>
         <div class="sec-h"><h2>Citation</h2></div>
 <pre style="margin-top:24px"><code>@software{turkcan2026streetnet,
   author  = {Turkcan, Mehmet Kerem},
-  title   = {{StreetNet}: street asset maps from street-level panoramas},
+  title   = {{StreetNet}: Open-Vocabulary Street Asset Inventories from Panoramas at City Scale},
   year    = {2026},
-  version = {0.1.0},
+  version = {0.2.0},
   url     = {https://github.com/mkturkcan/streetnet}
 }</code></pre>
       </div>
@@ -310,9 +311,9 @@ streetnet status --index panos.parquet --run runs/city</code></pre></div>
         <div class="sec-h"><h2>License</h2></div>
         <dl class="kv" style="margin-top:24px">
           <dt>Code</dt><dd>GNU Affero General Public License v3.0 or later</dd>
-          <dt>Map</dt><dd>CC BY-NC 4.0, as stated on the <a href="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc">dataset card</a></dd>
-          <dt>Models</dt><dd>SAM 3, Mask2Former and MoGe-2 under their own licenses</dd>
-          <dt>Imagery</dt><dd>Google Street View, Imagery © Google; shown in the figures and videos to describe the method</dd>
+          <dt>Asset map</dt><dd>CC BY-NC 4.0 (see the <a href="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc">dataset card</a>)</dd>
+          <dt>Models</dt><dd>SAM 3.1, Mask2Former, MoGe-3, and SigLIP 2 under their respective licenses</dd>
+          <dt>Imagery</dt><dd>Google Street View (Imagery © Google); excerpts shown in figures and videos solely to illustrate the method</dd>
           <dt>Reference data</dt><dd>NYC Open Data</dd>
         </dl>
       </div>
@@ -322,8 +323,8 @@ streetnet status --index panos.parquet --run runs/city</code></pre></div>
 
 <footer>
   <div class="wrap">
-    <span>StreetNet. Imagery © Google. Reference data and basemap: NYC Open Data.</span>
-    <span><a href="https://github.com/mkturkcan/streetnet">GitHub</a> &emsp; <a href="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc">Dataset</a> &emsp; <a href="method.html">Method</a></span>
+    <span>StreetNet · Imagery © Google · Reference data &amp; basemap: NYC Open Data</span>
+    <span><a href="https://github.com/mkturkcan/streetnet">GitHub</a> &emsp; <a href="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc">Dataset</a> &emsp; <a href="https://huggingface.co/spaces/mehmetkeremturkcan/streetnet-viewer">Viewer</a> &emsp; <a href="method.html">Method</a></span>
   </div>
 </footer>
 </body>

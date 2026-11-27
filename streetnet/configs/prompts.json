@@ -1,8 +1,9 @@
 {
- "_comment": "SAM 3 vocabulary of the New York City map: 22 vocabulary classes, 25 prompts. Two of them are folded before the map: pedestrian_signal is relabelled traffic_signal, and utility_pole is a pole carrier for sign localization that the published map leaves out. Curb ramps and catch basins come from Mask2Former-Vistas and have no prompts. mount: ground (the mask bottom touches the ground), pole (hangs on a pole; the contact point is taken from the pole below), surface (flush with the ground; the mask centroid is used).",
+ "_comment": "SAM 3.1 vocabulary for the New York City map: 23 vocabulary classes, 34 prompts. pedestrian_signal is relabeled as traffic_signal; utility_pole serves as a pole carrier for sign localization and is omitted from the published map. Curb ramps are segmented solely by Mask2Former-Vistas; catch basins ensemble SAM 3.1 and Mask2Former-Vistas. mount: ground (mask bottom touches the ground), pole (mounted on a pole; inherits contact geometry from the supporting pole), surface (flush with the road surface; uses mask centroid).",
  "fire_hydrant": {
   "prompts": [
-   "fire hydrant"
+   "fire hydrant",
+   "street fire hydrant"
   ],
   "mount": "ground"
  },
@@ -46,26 +47,29 @@
  },
  "parking_meter": {
   "prompts": [
-   "parking pay station",
-   "parking meter"
+   "parking meter",
+   "parking pay station"
   ],
   "mount": "ground"
  },
  "trash_can": {
   "prompts": [
-   "trash can"
+   "trash can",
+   "public litter basket"
   ],
   "mount": "ground"
  },
  "bench": {
   "prompts": [
-   "bench"
+   "bench",
+   "sidewalk bench"
   ],
   "mount": "ground"
  },
  "bike_rack": {
   "prompts": [
-   "bike rack"
+   "bike rack",
+   "bicycle rack"
   ],
   "mount": "ground"
  },
@@ -83,7 +87,8 @@
  },
  "fire_alarm_box": {
   "prompts": [
-   "fire alarm box"
+   "fire alarm box",
+   "red street fire call box"
   ],
   "mount": "ground"
  },
@@ -107,12 +112,14 @@
  },
  "bus_shelter": {
   "prompts": [
-   "bus stop shelter"
+   "bus stop shelter",
+   "glass bus shelter"
   ],
   "mount": "ground"
  },
  "kiosk": {
   "prompts": [
+   "tall black sidewalk digital kiosk",
    "LinkNYC kiosk"
   ],
   "mount": "ground"
@@ -132,6 +139,13 @@
  "manhole": {
   "prompts": [
    "manhole cover"
+  ],
+  "mount": "surface"
+ },
+ "storm_drain": {
+  "prompts": [
+   "storm drain",
+   "street drainage grate"
   ],
   "mount": "surface"
  }

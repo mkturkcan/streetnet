@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "streetnet"
-version = "0.1.0"
-description = "Street-asset maps from street-level panoramas: open-vocabulary detection, metric ranging and cross-panorama fusion."
+version = "0.2.0"
+description = "Open-vocabulary street asset inventories from street-level panoramas: concept segmentation, single-view localization, and cross-panorama fusion."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "AGPL-3.0-or-later"
 license-files = ["LICENSE"]
 authors = [{ name = "Mehmet Kerem Turkcan" }]
-keywords = ["street assets", "asset inventory", "street view", "SAM 3", "mapping", "geospatial"]
+keywords = ["street assets", "asset inventory", "street view", "SAM 3.1", "MoGe-3", "SigLIP 2", "mapping", "geospatial"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: POSIX :: Linux",
@@ -29,14 +29,14 @@ dependencies = [
 [project.optional-dependencies]
 detect = [
     "torch>=2.5",
-    "transformers>=4.46",
+    "transformers>=4.49",
     "huggingface_hub>=0.34",
     "pillow>=10",
     "pycocotools>=2.0.7",
     "opencv-python>=4.9",                # also a dependency of MoGe
     "setuptools<82",                     # SAM 3 imports pkg_resources, removed in setuptools 82
     "sam3 @ git+https://github.com/facebookresearch/sam3@96914d2425f90a64f45ca977c2b5165418099543",
-    "moge @ git+https://github.com/microsoft/MoGe@925b8ed835a7a9cdb7578ba15c658a0afc969030",
+    "moge @ git+https://github.com/microsoft/MoGe@74fbce054ebed49800de42d0ad0e83495065719a",
 ]
 dev = ["pytest>=8", "ruff>=0.6", "matplotlib>=3.8"]
 

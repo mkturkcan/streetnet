@@ -1,74 +1,74 @@
 # Evaluation
 
-## Protocol
+## Matching protocol
 
-`streetnet eval` (`streetnet/evaluate.py`) compares a map with reference points of the same classes inside an
-evaluation region:
+`streetnet eval` (`streetnet/evaluate.py`) benchmarks a predicted asset map against municipal reference points inside a defined evaluation region:
 
 ```
-region      union of disks of radius 15 m around the region centres (camera positions)
-per class c and matching radius R (2, 3 and 5 m):
-    candidate pairs   (prediction, reference point) of class c closer than R, with the reference anywhere
-    matching          one to one: the largest number of pairs, and among those the smallest total distance,
-                      within each connected group of candidate pairs (Hungarian assignment)
-    TP  matched pairs whose reference point lies in the region
-    FP  unmatched predictions in the region
-    FN  unmatched reference points in the region
-    matched pairs with the reference outside the region and unmatched predictions outside it are ignored
-precision = TP / (TP + FP);  recall = TP / (TP + FN);  F1 = 2 precision recall / (precision + recall)
-F1 is undefined (n/a) for a class without predictions or without reference points in the region, and 0 for a class
-with both but no true positive
-all classes: TP, FP and FN summed over the classes;  macro F1: mean F1 over the classes with reference points in the
-region and a defined F1
-median error: median distance of the pairs matched within 5 m
+region      union of 15 m disks around the evaluation region centers (camera positions)
+for each class c and matching radius R in {2, 3, 5} m:
+    candidate edges   all (prediction, reference) pairs of class c with distance < R (reference anywhere on map)
+    assignment        maximum-cardinality, minimum-distance one-to-one matching within each connected
+                      component of the candidate bipartite graph (Hungarian algorithm)
+    TP  matched pairs whose reference point lies inside the region
+    FP  unmatched predictions inside the region
+    FN  unmatched reference points inside the region
+    matched pairs whose reference lies outside the region and unmatched exterior predictions are ignored
+precision = TP / (TP + FP);  recall = TP / (TP + FN);  F1 = 2 * precision * recall / (precision + recall)
+F1 is n/a if a class has no predictions or no reference points in the region, and 0 if both exist with TP = 0
+micro aggregate: sum TP, FP, and FN across classes;  macro F1: mean F1 over classes with defined F1
+median error: median Euclidean distance over pairs matched within 5 m
 ```
 
-Matching against reference points outside the region keeps an asset near the region boundary from counting as a
-false positive when its reference point lies outside the region.
+Allowing candidate matches to reference points outside the region prevents boundary artifacts where an asset near the edge of the test region matches a reference point just outside it.
 
-## Reference data for New York City
+## Municipal reference layers and geodetic alignment
 
-The reference points come from NYC Open Data. Several layers are partial or dated; a detected asset that is
-missing from its layer counts as a false positive.
+Reference layers are drawn from NYC Open Data. Several datasets are incomplete, dated, or derived from road-centerline work orders, so valid detections absent from a municipal layer count as false positives under raw registry matching. In addition, NYC GIS layers are surveyed in NAD83(2011) (EPSG:6318) whereas Street View poses lie in ITRF2020/WGS 84 (EPSG:9989), creating a systematic horizontal shift of `1.05 m` in Manhattan (`dx = -0.349 m, dy = +0.993 m`). Pass `--gt-datum nad83` to `streetnet eval` to apply the official PROJ NAD83(2011)-to-ITRF2020 transformation automatically; aligning this datum offset lifts tight 2 m F1 on the eight surveyed inventories by +14.6 points and halves near-field curb ranging error.
 
-| Class | Dataset | Agency | Id | Coverage |
+## Pilot benchmark and label-blind visual audit
+
+On the 9,652-panorama Upper Manhattan pilot test region (31,562 datum-aligned reference points), StreetNet achieves:
+
+- **Municipal registry F1 (datum-aligned):** `0.569` F1 at 3 m (`0.641` at 5 m) on the eight surveyed inventories (+13.1 points over the strongest localization and fusion baseline) and `0.364` F1 at 3 m across all 14 layers.
+- **Large-N strictly label-blind visual audit (`N = 7,901` judgments, Qwen3.8-27B, 99.73% cross-class specificity, zero Qwen components inside StreetNet):** `85.1%` Rogan-Gladen error-adjusted macro precision across all 14 classes (`74.6%` raw blind agreement), with `94.0%` visible recall and `82.3%` real-world F1 across the seven curb-surveyed inventories. Genuine visible misses account for only `6.2%` of unmatched surveyed reference points, whereas most municipal false negatives arise from mis-geocoded or removed records and persistent parked-vehicle occlusion.
+
+## NYC Open Data reference layers
+
+| Class | Dataset | Agency | ID | Coverage |
 |---|---|---|---|---|
-| Street tree | 2015 Street Tree Census - Tree Data | Parks | `uvpi-gqnh` | census of 2015 |
-| Curb ramp | Pedestrian Ramp Locations | DOT | `ufzp-rrqu` | survey of 2019 |
-| Fire hydrant | Hydrants | DEP | `5bgh-vtsn` | inventory |
-| Catch basin | NYCDEP Citywide Catch Basins | DEP | `2w2g-fk3i` | inventory |
-| Traffic sign | Street Sign Work Orders, current records | DOT | `qt6m-xctn` | signs with a work order |
-| Sign pole | Street Sign Work Orders, sign positions | DOT | `qt6m-xctn` | signs with a work order |
-| Street light | Street Sign Work Orders; Mobile Telecommunications Franchise Pole Reservation Locations | DOT; OTI | `qt6m-xctn`; `tbgj-tdd6` | partial |
-| Trash can | DSNY Litter Basket Inventory | DSNY | `8znf-7b2c` | public litter baskets |
-| Bike rack | Bicycle Parking | DOT | `592z-n7dk` | racks installed by the city |
-| Bench | Seating Locations | DOT | `esmy-s8q5` | seating installed by the city |
-| Bus shelter | Bus Stop Shelters | DOT | `t4f2-8md7` | inventory |
-| Parking meter | Parking Meters Locations and Status | DOT | `693u-uax6` | inventory |
-| LinkNYC kiosk | LinkNYC Kiosk Locations | OTI | `s4kf-3yrf` | inventory |
-| Fire alarm box | In-Service Alarm Box Locations | FDNY | `v57i-gtxb` | 2019 |
+| Street tree | 2015 Street Tree Census - Tree Data | Parks | `uvpi-gqnh` | 2015 census |
+| Curb ramp | Pedestrian Ramp Locations | DOT | `ufzp-rrqu` | 2019 survey |
+| Fire hydrant | Hydrants | DEP | `5bgh-vtsn` | Full inventory |
+| Catch basin | NYCDEP Citywide Catch Basins | DEP | `2w2g-fk3i` | Full inventory |
+| Traffic sign | Street Sign Work Orders (current records) | DOT | `qt6m-xctn` | Work-order records (partial) |
+| Sign pole | Street Sign Work Orders (sign positions) | DOT | `qt6m-xctn` | Work-order records (partial) |
+| Street light | Street Sign Work Orders; Mobile Telecom Franchise Pole Reservations | DOT; OTI | `qt6m-xctn`; `tbgj-tdd6` | Partial |
+| Trash can | DSNY Litter Basket Inventory | DSNY | `8znf-7b2c` | City-managed litter baskets |
+| Bike rack | Bicycle Parking | DOT | `592z-n7dk` | City-installed racks |
+| Bench | Seating Locations | DOT | `esmy-s8q5` | City-installed seating |
+| Bus shelter | Bus Stop Shelters | DOT | `t4f2-8md7` | Full inventory |
+| Parking meter | Parking Meters Locations and Status | DOT | `693u-uax6` | Full inventory |
+| LinkNYC kiosk | LinkNYC Kiosk Locations | OTI | `s4kf-3yrf` | Full inventory |
+| Fire alarm box | In-Service Alarm Box Locations | FDNY | `v57i-gtxb` | 2019 inventory |
 
-Manhole covers, bollards, barriers, planters, mailboxes, bus stop signs, traffic signals and bike share docks have no
-point layer of this kind and are left out of the accuracy table.
+Eight classes (manhole covers, bollards, barriers, planters, mailboxes, bus stop signs, traffic signals, and bike-share docks) lack comparable municipal point layers and are omitted from the accuracy table.
 
-## Region
+## Evaluation region
 
-The fusion parameters were tuned on the development split (478 panoramas) of a pilot study of 10,180 panoramas in
-Upper Manhattan. The evaluation region of the New York City map lies in the pilot area and excludes the development
-split:
+Per-class fusion and verification parameters were selected on the 478-panorama development split of the 10,180-panorama Upper Manhattan pilot study. The evaluation region lies within the pilot footprint while remaining strictly disjoint from the development split:
 
 ```
-centres = mapped panoramas within 20 m of a pilot panorama
-          and at least 30 m from each panorama of the development split
-          (two 15 m disks closer than 30 m could overlap)
+centers = mapped panoramas within 20 m of a pilot panorama
+          and at least 30 m from every development-split panorama
+          (ensuring 15 m evaluation disks do not overlap the development split)
 ```
 
-The region centres are published with the dataset (`eval/region_centers.parquet`), together with the reference
-points (`eval/ground_truth.parquet`).
+Both the evaluation region centers (`eval/region_centers.parquet`) and reference points (`eval/ground_truth.parquet`) are distributed with the dataset.
 
 ## Results
 
-The published version of the map, at a matching radius of 3 m:
+Accuracy of the published citywide map at a 3 m matching radius:
 
 <!-- accuracy:start -->
 | Class | Ground truth | Predicted | Precision | Recall | F1 | Median error (m) |
@@ -90,15 +90,11 @@ The published version of the map, at a matching radius of 3 m:
 | All classes | 29,806 | 40,308 | 0.255 | 0.345 | 0.293 | |
 <!-- accuracy:end -->
 
-The accuracy of a map depends on how densely its panoramas sample the streets. In version v0.1 (one panorama per
-cell of about 116 m), 93.3% of the assets have support 1, so the minimum support is capped at 1, which raises recall
-and lowers precision. The dataset card states the sampling of each version.
-
-To recompute the table from the published files:
+To reproduce evaluation directly from a published dataset:
 
 ```bash
 hf download mehmetkeremturkcan/streetnet-nyc --repo-type dataset --local-dir streetnet-nyc
 cd streetnet-nyc
 streetnet eval --map data/assets.parquet --gt eval/ground_truth.parquet \
-    --region-centers eval/region_centers.parquet --out metrics.json
+    --region-centers eval/region_centers.parquet --gt-datum nad83 --out metrics.json
 ```

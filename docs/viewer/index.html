@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>StreetNet Map Viewer</title>
-<meta name="description" content="Interactive map of the StreetNet street asset map of New York City.">
+<meta name="description" content="Interactive browser viewer for the StreetNet New York City street asset inventory.">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
@@ -67,20 +67,20 @@
 <body>
 <div id="map"></div>
 <div class="panel" id="panel">
-  <h1>StreetNet asset map</h1>
-  <p class="sub" id="sub">New York City, street assets detected in street-level panoramas.</p>
+  <h1>StreetNet Asset Map</h1>
+  <p class="sub" id="sub">New York City street assets localized from street-level panoramas.</p>
   <label class="conf">Minimum confidence: <span id="confv">0.00</span>
     <input id="conf" type="range" min="0" max="0.95" step="0.05" value="0"></label>
   <div class="controls"><button id="all">Show all</button><button id="none">Hide all</button></div>
   <div id="legend"></div>
-  <div class="foot">Map data: <a href="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc">streetnet-nyc</a>.
-    Code: <a href="https://github.com/mkturkcan/streetnet">StreetNet</a>. Experimental classes are marked.</div>
+  <div class="foot">Dataset: <a href="https://huggingface.co/datasets/mehmetkeremturkcan/streetnet-nyc">streetnet-nyc</a> ·
+    Code: <a href="https://github.com/mkturkcan/streetnet">StreetNet</a>. Experimental classes are tagged.</div>
 </div>
-<button class="toggle" id="theme" title="Switch light and dark">Dark</button>
+<button class="toggle" id="theme" title="Toggle light/dark theme">Dark</button>
 <div class="msg" id="msg"></div>
 
 <script>
-// Classes and colours: streetnet/configs/classes.json (groups in the same order as the colours).
+// Classes and colors: streetnet/configs/classes.json (groups in the same order as the colors).
 const GROUPS = ["Lighting and poles", "Traffic control", "Ground surface", "Safety and emergency", "Sanitation", "Greenery",
                 "Transit and mobility", "Amenities"];
 const COLORS = { light: ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"],
