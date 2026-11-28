@@ -142,6 +142,18 @@ def _run_block(key):
     dets = read_detections(_G["det_dir"], ids)
     if dets is None:
         return None
+    # Guard against corrupted per-panorama road-plane scale factors (e.g., large nadir privacy-blur masks
+    # misclassified as roadway or steep hills pushing road_alpha outside [0.80, 1.20]): revert those panos
+    # cleanly to native metric depth (alpha = 1.0).
+    if "road_alpha" in dets.columns:
+        a = dets["road_alpha"].to_numpy(float)
+        bad_a = np.isfinite(a) & (a > 0.1) & ((a < 0.80) | (a > 1.20))
+        if bad_a.any():
+            inv = np.where(bad_a, 1.0 / a, 1.0)
+            if "drng" in dets.columns:
+                dets["drng"] = (dets["drng"].to_numpy(float) * inv).astype(np.float32)
+            if "d_mask" in dets.columns:
+                dets["d_mask"] = (dets["d_mask"].to_numpy(float) * inv).astype(np.float32)
     for c in ("cut_bottom", "cut_side", "owner"):
         dets[c] = dets[c].fillna(False).astype(bool)
     dets["score"] = dets["score"].astype(float)

@@ -114,7 +114,7 @@ def fit_road_plane_scale(
     road_mask: np.ndarray,
     R_lev: np.ndarray,
     h: float = 2.5,
-    r_min: float = 3.0,
+    r_min: float = 7.0,
     r_max: float = 15.0,
     dz_max: float = -0.15,
     min_pixels: int = 50,
@@ -123,7 +123,8 @@ def fit_road_plane_scale(
     """Zero-GT per-panorama monocular range scale factor calibrated against unobstructed road pixels.
 
     Compares the analytical leveled road-plane range h / (-d_lev.z) against predicted radial distances
-    on pixels marked as roadway in `road_mask`, returning the median ratio clipped to `clip_bounds`.
+    on pixels marked as roadway in `road_mask` across `[r_min, r_max]` m (default 7 to 15 m, excluding
+    near-field ego-vehicle and nadir privacy-blur regions), returning the median ratio clipped to `clip_bounds`.
     Automatically aligns `road_mask` to `range_map` resolution if shapes differ.
     Returns 1.0 if fewer than `min_pixels` valid road pixels exist.
     """
