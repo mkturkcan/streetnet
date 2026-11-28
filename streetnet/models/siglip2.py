@@ -340,6 +340,44 @@ class SigLIP2Verifier:
                 embs.append(torch.nn.functional.normalize(e, dim=-1).cpu().numpy())
         return np.concatenate(embs, axis=0) if embs else np.zeros((0, 1), np.float32)
 
+    def _encode_tensors(self, tensors, batch_size: int = 128) -> np.ndarray:
+        """Encode float/uint8 GPU or CPU tensors (N, 3, H, W) directly on GPU without PIL overhead."""
+        import torch
+        import torch.nn.functional as F
+
+        if not len(tensors):
+            return np.zeros((0, 1), np.float32)
+        embs = []
+        with torch.inference_mode():
+            for i in range(0, len(tensors), batch_size):
+                x = torch.stack(tensors[i:i + batch_size]).to(self.device, non_blocking=True)
+                if x.dtype == torch.uint8:
+                    x = x.float().div_(255.0)
+                else:
+                    x = x.float()
+                if x.shape[-2:] != (384, 384):
+                    x = F.interpolate(x, size=(384, 384), mode="bilinear", align_corners=False)
+                x = ((x - 0.5) / 0.5).to(torch.float16)
+                e = self.model.get_image_features(pixel_values=x)
+                e = getattr(e, "pooler_output", e).float()
+                embs.append(F.normalize(e, dim=-1).cpu().numpy())
+        return np.concatenate(embs, axis=0) if embs else np.zeros((0, 1), np.float32)
+
+    def score_crop_tensors(self, tight_tensors, wide_tensors, labels: list[str], batch_size: int = 128):
+        """Return (sig2_tight, sig2_wide, sig2_comb) float32 arrays from (3, H, W) crop tensors."""
+        et = self._encode_tensors(tight_tensors, batch_size=batch_size)
+        ew = self._encode_tensors(wide_tensors, batch_size=batch_size)
+        mt = np.zeros(len(labels), np.float32)
+        mw = np.zeros(len(labels), np.float32)
+        for i, cls in enumerate(labels):
+            if cls not in self.txt_emb:
+                continue
+            ep, en = self.txt_emb[cls]
+            mt[i] = float((et[i] @ ep.T).max() - (et[i] @ en.T).max())
+            mw[i] = float((ew[i] @ ep.T).max() - (ew[i] @ en.T).max())
+        comb = (TIGHT_WEIGHT * mt + (1.0 - TIGHT_WEIGHT) * mw).astype(np.float32)
+        return mt, mw, comb
+
     def score_crops(self, tight_images, wide_images, labels: list[str], batch_size: int = 64):
         """Return (sig2_tight, sig2_wide, sig2_comb) float32 arrays aligned with `labels`."""
         et = self._encode_images(tight_images, batch_size=batch_size)
@@ -364,15 +402,16 @@ def score_candidates(
     device: str = "cuda",
     batch_size: int = 64,
     shard: str = "0/1",
+    active_classes: set[str] | None = None,
     log=print,
 ) -> pd.DataFrame:
     """Compute SigLIP 2 tight, wide, and combined margins for candidates in `shard`.
 
     Requires `best_pano`, `label`, `view`, `x0`, `y0`, `x1`, `y1` columns in `assets`.
-    Returns a DataFrame indexed by `asset_id` (or row index) with `sig2_tight`, `sig2_wide`, `sig2_comb`.
+    When `active_classes` is given, only candidates whose `label` is in `active_classes` are scored.
+    Returns a DataFrame with columns `asset_id`, `sig2_tight`, `sig2_wide`, `sig2_comb`.
     """
     import torch
-    from PIL import Image
 
     from ..index import image_path, load_image
 
@@ -380,6 +419,11 @@ def score_candidates(
     missing = req - set(assets.columns)
     if missing:
         raise ValueError(f"assets table missing required columns for SigLIP 2 verification: {sorted(missing)}")
+
+    if active_classes is not None:
+        assets = assets[assets["label"].astype(str).isin(active_classes)]
+    if not len(assets):
+        return pd.DataFrame(columns=["asset_id", "sig2_tight", "sig2_wide", "sig2_comb"])
 
     s_idx, n_shards = map(int, shard.split("/"))
     panos = sorted(p for p in assets["best_pano"].dropna().astype(str).unique() if p in index.index)
@@ -398,7 +442,7 @@ def score_candidates(
     def flush():
         if not buf_aid:
             return
-        mt, mw, mc = verifier.score_crops(buf_t, buf_w, buf_cls, batch_size=batch_size)
+        mt, mw, mc = verifier.score_crop_tensors(buf_t, buf_w, buf_cls, batch_size=batch_size)
         aids.extend(buf_aid)
         mt_all.extend(mt.tolist())
         mw_all.extend(mw.tolist())
@@ -408,7 +452,7 @@ def score_candidates(
         buf_t.clear()
         buf_w.clear()
 
-    loader = ThreadPoolExecutor(3)
+    loader = ThreadPoolExecutor(6)
     futs = {}
 
     def prefetch(k):
@@ -416,22 +460,24 @@ def score_candidates(
             pid = str(pano_groups[k][0])
             futs[k] = loader.submit(lambda p: load_image(image_path(index, p, images)), pid)
 
-    for k in range(min(4, len(pano_groups))):
+    for k in range(min(8, len(pano_groups))):
         prefetch(k)
     for k, (_pid, grp) in enumerate(pano_groups):
-        prefetch(k + 4)
+        prefetch(k + 8)
         rgb = futs.pop(k).result()
         with torch.inference_mode():
             eq = torch.from_numpy(rgb).to(verifier.device, non_blocking=True).permute(2, 0, 1).float().div_(255)
             rows = [r for _, r in grp.iterrows()]
-            ct = render_crops_from_eq(eq, rows, views, size=CROP_SIZE, margin=TIGHT_MARGIN)
-            cw = render_crops_from_eq(eq, rows, views, size=CROP_SIZE, margin=WIDE_MARGIN)
+            vt = [crop_view(r, views, size=CROP_SIZE, margin=TIGHT_MARGIN) for r in rows]
+            vw = [crop_view(r, views, size=CROP_SIZE, margin=WIDE_MARGIN) for r in rows]
+            ct = (render_views(eq, vt).clamp_(0, 1) * 255).byte().cpu()
+            cw = (render_views(eq, vw).clamp_(0, 1) * 255).byte().cpu()
             del eq
-        for r, im_t, im_w in zip(rows, ct, cw):
+        for idx_r, r in enumerate(rows):
             buf_aid.append(int(r["asset_id"]) if "asset_id" in r else int(r.name))
             buf_cls.append(str(r["label"]))
-            buf_t.append(Image.fromarray(im_t))
-            buf_w.append(Image.fromarray(im_w))
+            buf_t.append(ct[idx_r])
+            buf_w.append(cw[idx_r])
         if len(buf_aid) >= 512:
             flush()
         if (k + 1) % 250 == 0 or (k + 1) == len(pano_groups):

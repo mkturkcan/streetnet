@@ -1,5 +1,5 @@
 {
- "_comment": "Classes of the published map: display name and group. experimental: precision below 0.67 in the pilot study's visual audit of up to 12 detections per class (fire alarm box 2 of 7, parking meter 4 of 12, planter 7 of 12), or not audited (bike share dock). utility_pole is left out of the published map: none of 12 audited detections was a utility pole. pedestrian_signal is merged into traffic_signal.",
+ "_comment": "Classes of the published map: display name and group. experimental: low-contrast or unreferenced street furniture classes flagged as experimental. utility_pole serves as a pole carrier for sign localization and is omitted from the published map. pedestrian_signal is merged into traffic_signal.",
  "groups": [
   "Lighting and poles",
   "Traffic control",

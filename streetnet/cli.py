@@ -90,17 +90,17 @@ def _verify(a, argv):
     import pandas as pd
 
     from .detect import views_of
-    from .fusion import apply_candidate_filters
+    from .fusion import apply_candidate_filters, class_params
     from .geometry import detection_views
     from .index import read_index
-    from .mapping import write_geojson
+    from .mapping import cap_min_support, write_geojson
     from .models.siglip2 import launch_verify, score_candidates
     from .vocabulary import DEFAULT_PARAMS
 
     map_path = Path(a.map)
     out_path = Path(a.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    params = json.loads(Path(a.params or DEFAULT_PARAMS).read_text())
+    params = cap_min_support(json.loads(Path(a.params or DEFAULT_PARAMS).read_text()), a.min_support_cap)
 
     if a.gpus:
         rest, skip = [], False
@@ -131,8 +131,10 @@ def _verify(a, argv):
             views = views_of(json.loads((Path(a.run) / "run.json").read_text()))
         else:
             views = detection_views(a.views)
+        active = {str(c) for c in assets_in["label"].dropna().unique()
+                  if float(class_params(params, str(c)).get("w_sig", 0.0)) > 0.0}
         scores = score_candidates(assets_in, index, a.images, views, batch_size=a.batch_size,
-                                  shard=a.shard, log=lambda s: print(s, flush=True))
+                                  shard=a.shard, active_classes=active, log=lambda s: print(s, flush=True))
         if a.scores_out:
             scores.to_parquet(a.scores_out, index=False)
             return 0
@@ -254,7 +256,9 @@ def main(argv=None):
     v.add_argument("--params", help="fusion parameter JSON (default: streetnet/configs/fusion_params.json)")
     v.add_argument("--gpus", help="comma-separated GPU IDs for sharded verification")
     v.add_argument("--shard", default="0/1", help="i/n shard when running single-process")
-    v.add_argument("--batch-size", type=int, default=64, help="SigLIP 2 image batch size")
+    v.add_argument("--min-support-cap", type=int, default=0,
+                   help="cap per-class minimum support during final filtering (match `streetnet map --min-support-cap`)")
+    v.add_argument("--batch-size", type=int, default=128, help="SigLIP 2 image batch size")
     v.add_argument("--scores-out", help=argparse.SUPPRESS)
 
     e = sub.add_parser("eval", help=EVAL_HELP, description=EVAL_HELP)
